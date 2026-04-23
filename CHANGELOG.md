@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.0.2
+
 ### installer
 
 - Scoped skill cleanup to installer-managed directories instead of deleting every `docs-*` folder by prefix.
