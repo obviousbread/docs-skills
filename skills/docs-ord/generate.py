@@ -932,22 +932,42 @@ def _add_attachment_block(doc, att, att_number, total_attachments, org_cfg, dt_c
         # Приложения к Положению (sub_attachments)
         sub_atts = att.get("sub_attachments", [])
         if sub_atts:
-            # Название Положения без слова «Положение» для грифа
-            if att_title.lower().startswith("положение "):
-                pol_suffix = att_title[len("Положение "):]
-            else:
-                pol_suffix = att_title
+            # Словарь: первое слово заголовка → (дательный падеж, форма «утвержденн*»)
+            _SUB_DAT = {
+                "положение":  ("Положению",  "утвержденному"),
+                "программа":  ("Программе",  "утвержденной"),
+                "порядок":    ("Порядку",    "утвержденному"),
+                "инструкция": ("Инструкции", "утвержденной"),
+                "регламент":  ("Регламенту", "утвержденному"),
+                "правила":    ("Правилам",   "утвержденным"),
+                "форма":      ("Форме",      "утвержденной"),
+                "схема":      ("Схеме",      "утвержденной"),
+                "матрица":    ("Матрице",    "утвержденной"),
+                "перечень":   ("Перечню",    "утвержденному"),
+                "состав":     ("Составу",    "утвержденному"),
+                "план":       ("Плану",      "утвержденному"),
+                "график":     ("Графику",    "утвержденному"),
+                "структура":  ("Структуре",  "утвержденной"),
+            }
+            words = att_title.split(None, 1)
+            first_word = words[0].lower() if words else ""
+            pol_dat, pol_utv = _SUB_DAT.get(first_word, ("Положению", "утвержденному"))
+            pol_suffix = words[1] if len(words) > 1 else ""
             total_sub = len(sub_atts)
             for sub_idx, sub_att in enumerate(sub_atts, start=1):
                 sub_landscape = sub_att.get("landscape", False)
                 _add_section_break(doc, landscape=sub_landscape)
-                # Гриф: «Приложение № N / к Положению / <название>»
+                # Гриф: «Приложение № N / к [Положению/Программе/...] / <остаток названия>
+                #         / утвержденн* / приказом [орг] / от ___ № ___»
                 sg = doc.add_table(rows=1, cols=2)
                 _remove_table_borders(sg)
                 sg.columns[0].width = Cm(8)
                 sg.columns[1].width = Cm(8.5)
                 sub_label = "Приложение" if total_sub == 1 else f"Приложение № {sub_idx}"
-                sub_lines = [sub_label, "к Положению", pol_suffix]
+                sub_lines = [sub_label, f"к {pol_dat}",
+                             pol_suffix, pol_utv,
+                             f"приказом {org_cfg['org_short']}",
+                             "от _____________ № ___________"]
                 _cell_text(sg.cell(0, 0), "")
                 _cell_lines(sg.cell(0, 1), sub_lines,
                             align=WD_ALIGN_PARAGRAPH.LEFT)
