@@ -17,6 +17,10 @@ const SKILLS = [
 const RUNTIMES = ["claude", "codex", "gemini"];
 const GEMINI_START = "<!-- docs-skills:start -->";
 const GEMINI_END = "<!-- docs-skills:end -->";
+const MANAGED_MARKER = ".docs-managed.json";
+const STATE_FILENAME = "install-state.json";
+const MANAGED_PACKAGE = pkg.name;
+const LEGACY_MANAGED_SKILLS = [...SKILLS];
 const EXCLUDED_NAMES = new Set([
   ".git",
   ".DS_Store",
@@ -87,6 +91,7 @@ function defaultPaths(options = {}) {
     home,
     dataRoot,
     runtimeRoot: path.join(dataRoot, "runtime"),
+    installState: path.join(dataRoot, STATE_FILENAME),
     sourceRoot: options.sourceRoot || path.resolve(__dirname, ".."),
     claudeSkills: path.join(home, ".claude", "skills"),
     codexSkills: path.join(home, ".codex", "skills"),
@@ -128,21 +133,132 @@ function copyDir(src, dest) {
   }
 }
 
-function removeManagedSkills(skillsRoot) {
+function readJson(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function buildInstallState(previousState = null) {
+  const runtimes = previousState && typeof previousState.runtimes === "object"
+    ? previousState.runtimes
+    : {};
+  return {
+    package: MANAGED_PACKAGE,
+    version: pkg.version,
+    updatedAt: new Date().toISOString(),
+    runtimes,
+    legacyCleanup: {
+      gemini: {
+        docsPath: ".gemini/docs",
+        geminiBlock: true,
+      },
+    },
+  };
+}
+
+function readInstallState(paths) {
+  try {
+    const state = readJson(paths.installState);
+    if (!state || state.package !== MANAGED_PACKAGE || typeof state !== "object") {
+      return null;
+    }
+    return state;
+  } catch {
+    return null;
+  }
+}
+
+function writeInstallState(paths, state) {
+  writeJson(paths.installState, buildInstallState(state));
+}
+
+function buildSkillMarker(runtime, skill) {
+  return {
+    package: MANAGED_PACKAGE,
+    version: pkg.version,
+    runtime,
+    skill,
+    installedAt: new Date().toISOString(),
+  };
+}
+
+function writeSkillMarker(skillDir, runtime, skill) {
+  writeJson(path.join(skillDir, MANAGED_MARKER), buildSkillMarker(runtime, skill));
+}
+
+function readSkillMarker(skillDir) {
+  try {
+    return readJson(path.join(skillDir, MANAGED_MARKER));
+  } catch {
+    return null;
+  }
+}
+
+function isManagedMarker(marker, skillName = null) {
+  if (!marker || typeof marker !== "object") {
+    return false;
+  }
+  if (marker.package !== MANAGED_PACKAGE) {
+    return false;
+  }
+  if (typeof marker.skill !== "string" || typeof marker.runtime !== "string") {
+    return false;
+  }
+  if (skillName && marker.skill !== skillName) {
+    return false;
+  }
+  return true;
+}
+
+function removeSkillDir(skillsRoot, skillName, removed) {
+  const target = path.join(skillsRoot, skillName);
+  if (!fs.existsSync(target)) {
+    return;
+  }
+  fs.rmSync(target, { recursive: true, force: true });
+  removed.push(target);
+}
+
+function removeManagedSkills(skillsRoot, runtime, state, options = {}) {
   if (!fs.existsSync(skillsRoot)) {
     return [];
   }
 
   const removed = [];
+  const knownNames = new Set();
+  const runtimeState = state?.runtimes?.[runtime];
+  for (const skill of runtimeState?.skills || []) {
+    knownNames.add(skill);
+  }
+  if (!state && options.includeLegacyFallback) {
+    for (const skill of LEGACY_MANAGED_SKILLS) {
+      knownNames.add(skill);
+    }
+  }
+
+  for (const skill of knownNames) {
+    removeSkillDir(skillsRoot, skill, removed);
+  }
+
   for (const entry of fs.readdirSync(skillsRoot, { withFileTypes: true })) {
-    if (!entry.name.startsWith("docs-")) {
+    if (!entry.isDirectory()) {
       continue;
     }
-    const target = path.join(skillsRoot, entry.name);
-    fs.rmSync(target, { recursive: true, force: true });
-    removed.push(target);
+    const skillDir = path.join(skillsRoot, entry.name);
+    if (!isManagedMarker(readSkillMarker(skillDir), entry.name)) {
+      continue;
+    }
+    removeSkillDir(skillsRoot, entry.name, removed);
   }
-  return removed;
+
+  return [...new Set(removed)];
 }
 
 function installRuntime(paths) {
@@ -152,14 +268,15 @@ function installRuntime(paths) {
   fs.writeFileSync(path.join(paths.dataRoot, "VERSION"), `${pkg.version}\n`);
 }
 
-function installSkills(runtimeSkillsRoot, skillsRoot) {
+function installSkills(runtimeSkillsRoot, skillsRoot, runtime, state, options = {}) {
   fs.mkdirSync(skillsRoot, { recursive: true });
-  removeManagedSkills(skillsRoot);
+  removeManagedSkills(skillsRoot, runtime, state, options);
 
   for (const skill of SKILLS) {
     const src = path.join(runtimeSkillsRoot, skill);
     const dest = path.join(skillsRoot, skill);
     copyDir(src, dest);
+    writeSkillMarker(dest, runtime, skill);
   }
 }
 
@@ -189,28 +306,41 @@ function removeLegacyGeminiBlock(paths) {
   }
 }
 
-function installGemini(paths) {
-  installSkills(path.join(paths.runtimeRoot, "skills"), paths.geminiSkills);
+function installGemini(paths, state, options = {}) {
+  installSkills(path.join(paths.runtimeRoot, "skills"), paths.geminiSkills, "gemini", state, options);
   fs.rmSync(paths.legacyGeminiDocs, { recursive: true, force: true });
   removeLegacyGeminiBlock(paths);
 }
 
 function uninstall(paths, runtimes) {
+  const state = readInstallState(paths);
+  const nextState = buildInstallState(state);
   if (runtimes.includes("claude")) {
-    removeManagedSkills(paths.claudeSkills);
+    removeManagedSkills(paths.claudeSkills, "claude", state, { includeLegacyFallback: true });
+    delete nextState.runtimes.claude;
   }
   if (runtimes.includes("codex")) {
-    removeManagedSkills(paths.codexSkills);
+    removeManagedSkills(paths.codexSkills, "codex", state, { includeLegacyFallback: true });
+    delete nextState.runtimes.codex;
   }
   if (runtimes.includes("gemini")) {
-    removeManagedSkills(paths.geminiSkills);
+    removeManagedSkills(paths.geminiSkills, "gemini", state, { includeLegacyFallback: true });
     fs.rmSync(paths.legacyGeminiDocs, { recursive: true, force: true });
     removeLegacyGeminiBlock(paths);
+    delete nextState.runtimes.gemini;
   }
 
   if (runtimes.length === RUNTIMES.length) {
     fs.rmSync(paths.runtimeRoot, { recursive: true, force: true });
     fs.rmSync(path.join(paths.dataRoot, "VERSION"), { force: true });
+    fs.rmSync(paths.installState, { force: true });
+    return;
+  }
+
+  if (Object.keys(nextState.runtimes).length === 0) {
+    fs.rmSync(paths.installState, { force: true });
+  } else {
+    writeInstallState(paths, nextState);
   }
 }
 
@@ -218,21 +348,33 @@ function install(options = {}) {
   const paths = defaultPaths(options);
   const runtimes = options.runtimes || RUNTIMES;
   const log = options.quiet ? () => {} : console.log;
+  const state = readInstallState(paths);
+  const nextState = buildInstallState(state);
+  const runtimeSkillsRoot = path.join(paths.runtimeRoot, "skills");
 
   installRuntime(paths);
 
   if (runtimes.includes("claude")) {
-    installSkills(path.join(paths.runtimeRoot, "skills"), paths.claudeSkills);
+    installSkills(runtimeSkillsRoot, paths.claudeSkills, "claude", state, {
+      includeLegacyFallback: true,
+    });
+    nextState.runtimes.claude = { skills: [...SKILLS] };
     log(`installed Claude skills: ${paths.claudeSkills}`);
   }
   if (runtimes.includes("codex")) {
-    installSkills(path.join(paths.runtimeRoot, "skills"), paths.codexSkills);
+    installSkills(runtimeSkillsRoot, paths.codexSkills, "codex", state, {
+      includeLegacyFallback: true,
+    });
+    nextState.runtimes.codex = { skills: [...SKILLS] };
     log(`installed Codex skills: ${paths.codexSkills}`);
   }
   if (runtimes.includes("gemini")) {
-    installGemini(paths);
+    installGemini(paths, state, { includeLegacyFallback: true });
+    nextState.runtimes.gemini = { skills: [...SKILLS] };
     log(`installed Gemini skills: ${paths.geminiSkills}`);
   }
+
+  writeInstallState(paths, nextState);
 
   log(`docs runtime: ${paths.runtimeRoot}`);
   log(`version: ${pkg.version}`);
@@ -269,10 +411,13 @@ module.exports = {
   RUNTIMES,
   defaultPaths,
   install,
+  isManagedMarker,
   parseArgs,
+  readInstallState,
   removeGeminiBlock,
   removeLegacyGeminiBlock,
   removeManagedSkills,
   run,
   uninstall,
+  writeSkillMarker,
 };

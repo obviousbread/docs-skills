@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### installer
+
+- Scoped skill cleanup to installer-managed directories instead of deleting every `docs-*` folder by prefix.
+- Added installer ownership metadata: per-skill `.docs-managed.json` markers and `~/.docs-plugin/install-state.json`.
+- Preserved clean reinstall semantics for managed skills so structure changes replace stale nested files.
+- Added coverage for foreign `docs-*` preservation, legacy canonical skill replacement, and state-driven rename migration.
+
 ### docs-ord
 
 - Fixed sub-attachment grift: подприложения к Положению/Программе/Порядку теперь содержат полную цепочку - дательный падеж родительского документа, согласованное «утвержденн*» и строку «приказом [орг] от ___ № ___». Поддерживается 14 типов документов.
