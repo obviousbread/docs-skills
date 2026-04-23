@@ -41,4 +41,6 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `chore`.
 1. Update `package.json` version.
 2. Update `CHANGELOG.md`.
 3. Run `npm test` and `npm pack --dry-run --json` to confirm tests pass and the tarball contains all runtime-critical files.
-4. Tag the release with the same version.
+4. Publish a new package version before creating a remote release, so `npx @obviousbread/docs@latest` can resolve the shipped installer.
+5. Create the git tag with the same version as `package.json`.
+6. Create the remote release paired with that same tag and package version.
