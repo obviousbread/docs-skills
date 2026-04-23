@@ -40,6 +40,7 @@ for _lib_path in (
     if os.path.isdir(_lib_path) and _lib_path not in _sys.path:
         _sys.path.insert(0, _lib_path)
 from db import log_generation, ORG_DETAILS_PATH
+from docx_meta import new_document
 
 
 def _load_org_details():
@@ -138,7 +139,7 @@ def create_sluzhebka(
     if doc_date is None:
         doc_date = date.today().strftime("%d.%m.%Y")
 
-    doc = Document()
+    doc = new_document()
 
     # Поля страницы (A4)
     section = doc.sections[0]

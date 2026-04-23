@@ -44,6 +44,7 @@ for _lib_path in (
     if os.path.isdir(_lib_path) and _lib_path not in _sys.path:
         _sys.path.insert(0, _lib_path)
 from db import log_generation, ORG_DETAILS_PATH
+from docx_meta import new_document
 
 
 # ─── Загрузка реквизитов из org_details.md ────────────────────────────────────
@@ -652,7 +653,7 @@ def create_letter(
         d = doc_date if doc_date else date.today().strftime("%d.%m.%Y")
         output_path = f"Письмо {d}.docx"
 
-    doc = Document()
+    doc = new_document()
 
     # ── Настройка страницы (A4) ──────────────────────────────────────────
     section = doc.sections[0]
