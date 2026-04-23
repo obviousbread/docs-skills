@@ -1,0 +1,11 @@
+skills/*/references/examples.local.md
+org_details.md
+org_notes.md
+.DS_Store
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+.worktrees/
+node_modules/
+coverage/
