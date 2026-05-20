@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.0.4
+
+### docs-finetune
+
+- Letters: when extracting an example whose signer is NOT an employee of the user's organization (resolved from `~/.docs-plugin/org_details.md`), omit the `**Подписант:**` line. Addressee, greeting, body and attachments are kept as-is.
+- Letters: when the body mentions the source organization's full or short name, replace it with the `[организация]` placeholder so the example can be reused for the current organization without manual rewriting.
+
 ## 0.0.3
 
 ### docs-di
