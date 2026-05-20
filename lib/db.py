@@ -16,7 +16,7 @@ LOG_PATH = os.path.join(DATA_DIR, "generations.jsonl")
 EXAMPLES_DIR = os.path.join(DATA_DIR, "examples")  # deprecated, use examples_file()
 ORG_DETAILS_PATH = os.path.join(DATA_DIR, "org_details.md")
 
-_CATEGORIES = ("ord", "letter", "memo")
+_CATEGORIES = ("ord", "letter", "memo", "di")
 
 
 def scripts_dir(category):

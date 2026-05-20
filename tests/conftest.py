@@ -36,6 +36,10 @@ memo_generate = _load_module(
     "memo_generate",
     os.path.join(REPO_ROOT, "skills", "docs-memo", "generate.py"),
 )
+di_generate = _load_module(
+    "di_generate",
+    os.path.join(REPO_ROOT, "skills", "docs-di", "generate.py"),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +73,7 @@ def mock_org_config():
         "output_dir_ord": "/tmp",
         "output_dir_letter": "/tmp",
         "output_dir_memo": "/tmp",
+        "output_dir_di": "/tmp",
     }
 
 
@@ -78,8 +83,10 @@ def patch_org_details(monkeypatch, mock_org_config):
     monkeypatch.setattr(ord_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(letter_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(memo_generate, "_load_org_details", lambda: mock_org_config)
+    monkeypatch.setattr(di_generate, "_load_org_details", lambda: mock_org_config)
     ord_generate.ORG_CONFIGS.clear()
     _noop = lambda *a, **kw: None
     monkeypatch.setattr(ord_generate, "log_generation", _noop)
     monkeypatch.setattr(letter_generate, "log_generation", _noop)
     monkeypatch.setattr(memo_generate, "log_generation", _noop)
+    monkeypatch.setattr(di_generate, "log_generation", _noop)

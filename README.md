@@ -7,7 +7,7 @@ Portable agent skills for generating official Russian administrative documents i
 ## Features
 
 - Generates official `.docx` documents in a consistent format.
-- Supports orders, directives, instructions, official letters, and internal memos.
+- Supports orders, directives, instructions, official letters, internal memos, and job descriptions.
 - Uses local organization details from `~/.docs-plugin/org_details.md`.
 - Checks staff data from a configured `.xlsx` file when needed.
 - Learns recurring wording patterns from your existing `.docx`, `.md`, and `.txt` files.
@@ -18,6 +18,7 @@ Portable agent skills for generating official Russian administrative documents i
 - `docs-ord` - orders, directives, and instructions.
 - `docs-letter` - official letters on organizational letterhead.
 - `docs-memo` - internal memos.
+- `docs-di` - job descriptions (должностные инструкции).
 - `docs-finetune` - extract reusable examples from real documents.
 
 ## Install

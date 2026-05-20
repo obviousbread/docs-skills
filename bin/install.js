@@ -11,6 +11,7 @@ const SKILLS = [
   "docs-ord",
   "docs-letter",
   "docs-memo",
+  "docs-di",
   "docs-finetune",
 ];
 

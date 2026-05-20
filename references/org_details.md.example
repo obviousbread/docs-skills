@@ -41,3 +41,4 @@ staff_file: {{ПУТЬ_К_СВОДНОМУ_XLSX_СО_СПИСКОМ_СОТРУД
 output_dir_ord: {{ПАПКА_ДЛЯ_ОРД, напр. ~/Documents/Приказы}}
 output_dir_letter: {{ПАПКА_ДЛЯ_ПИСЕМ, напр. ~/Documents/Письма}}
 output_dir_memo: {{ПАПКА_ДЛЯ_СЛУЖЕБОК, напр. ~/Documents/Служебки}}
+output_dir_di: {{ПАПКА_ДЛЯ_ДИ, напр. ~/Documents/Должностные инструкции}}

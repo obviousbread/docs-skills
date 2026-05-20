@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 0.0.3
+
+### docs-di
+
+- Added portable `docs-di` skill for generating Russian job descriptions (должностные инструкции) for specialist, head of department, and head of directorate positions.
+- Integrated with shared `lib/db.py`: reads org details from `~/.docs-plugin/org_details.md`, logs generations to `~/.docs-plugin/generations.jsonl`, resolves output dir from `output_dir_di`.
+- Separated user data from the package: the согласующие pool now lives in `~/.docs-plugin/di/approvers.md` (user-zone, not shipped). Repo ships `references/approvers.md.example` as a placeholder template. Same for reference example .md files — agent reads them from `~/.docs-plugin/di/examples/` if present.
+- Organization-agnostic templates: hardcoded organization name and curator surnames stripped from `SKILL.md`, `tier_rules.md`, `structure.md`, `knowledge_base.md`, `helpers.md`, `quality-checklist.md`. References to specific roles use approver keys (`udkp_head`, `hr_head`, `legal_head`, `curating_dgd`) resolved at generation time from the user-zone approvers file.
+
+### installer
+
+- Added `docs-di` to the SKILLS array in `bin/install.js`.
+
+### docs-init
+
+- Block 6 (output paths) now also asks for the job-description folder (`output_dir_di`).
+
+### references
+
+- `references/org_details.md.example`: added `output_dir_di` field under «Пути вывода».
+
 ## 0.0.2
 
 ### installer
