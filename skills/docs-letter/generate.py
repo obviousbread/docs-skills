@@ -313,22 +313,19 @@ def _build_header_table(doc, date_str, number_str, on_number_str,
     """
     cfg = _build_org_config()
 
-    # Таблица: 3 колонки (левая реквизиты | разделитель | правая адресат)
-    table = doc.add_table(rows=1, cols=3)
+    # Таблица: 2 колонки (левая реквизиты | правая адресат)
+    table = doc.add_table(rows=1, cols=2)
     _remove_table_borders(table)
     _set_table_width(table, 10310)
     _set_table_indent(table, -671)
-    _set_grid_cols(table, [4786, 709, 4815])
+    _set_grid_cols(table, [4786, 5524])
     _set_row_height(table.rows[0], 4819)
 
-    # Ширина ячеек
     _set_cell_width(table.cell(0, 0), 4786)
-    _set_cell_width(table.cell(0, 1), 709)
-    _set_cell_width(table.cell(0, 2), 4815)
+    _set_cell_width(table.cell(0, 1), 5524)
 
     left_cell = table.cell(0, 0)
-    spacer_cell = table.cell(0, 1)
-    right_cell = table.cell(0, 2)
+    right_cell = table.cell(0, 1)
 
     # ── Левая колонка: реквизиты ──────────────────────────────────────────
 
@@ -389,21 +386,16 @@ def _build_header_table(doc, date_str, number_str, on_number_str,
     _cell_add_para(left_cell, "", size=14,
                    align=WD_ALIGN_PARAGRAPH.CENTER)
 
-    # ── Средняя колонка: пусто ────────────────────────────────────────────
-    spacer_cell.paragraphs[0].text = ""
-
     # ── Правая колонка: адресат ───────────────────────────────────────────
     first = True
     for line in addressee_lines:
         if first:
             _cell_para(right_cell, line, size=14,
-                       align=WD_ALIGN_PARAGRAPH.LEFT,
-                       left_indent_twips=421)
+                       align=WD_ALIGN_PARAGRAPH.LEFT)
             first = False
         else:
             _cell_add_para(right_cell, line, size=14,
-                           align=WD_ALIGN_PARAGRAPH.LEFT,
-                           left_indent_twips=421)
+                           align=WD_ALIGN_PARAGRAPH.LEFT)
 
     return table
 
