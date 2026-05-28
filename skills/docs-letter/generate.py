@@ -432,44 +432,13 @@ def _build_signature_table(doc, signer_title, signer_name):
     return table
 
 
-# ─── Построение футера (исполнитель) ─────────────────────────────────────────
-
-def _build_first_page_footer(section, executor_name, executor_phone):
-    """Настроить футер первой страницы с данными исполнителя."""
-    # Включить «Особый колонтитул первой страницы»
-    section.different_first_page_header_footer = True
-
-    footer = section.first_page_footer
-    footer.is_linked_to_previous = False
-
-    # Имя исполнителя
-    p1 = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
-    p1.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p1.paragraph_format.space_after = Pt(0)
-    p1.paragraph_format.space_before = Pt(0)
-    p1.paragraph_format.line_spacing = 1.0
-    run1 = p1.add_run(executor_name)
-    run1.font.name = "Times New Roman"
-    run1.font.size = Pt(8)
-    run1._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
-
-    # Телефон
-    p2 = footer.add_paragraph()
-    p2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p2.paragraph_format.space_after = Pt(0)
-    p2.paragraph_format.space_before = Pt(0)
-    p2.paragraph_format.line_spacing = 1.0
-    run2 = p2.add_run(executor_phone)
-    run2.font.name = "Times New Roman"
-    run2.font.size = Pt(8)
-    run2._element.rPr.rFonts.set(qn("w:eastAsia"), "Times New Roman")
-
+# ─── Построение блока исполнителя ────────────────────────────────────────────
 
 def _build_executor_body(doc, executor_name, executor_title, executor_phone):
     """Добавить исполнителя как обычный текст в теле документа (серый, 8pt).
 
-    Используется для многостраничных писем, где колонтитул первой страницы
-    не подходит - исполнитель должен быть на той же странице, что и подписант.
+    Исполнитель всегда размещается в теле документа после блока подписи,
+    отделённый пустыми строками. В колонтитул не выносится.
 
     Формат:
         Фамилия Имя Отчество,
@@ -553,7 +522,6 @@ def create_letter(
     executor_name=None,
     executor_title="",
     executor_phone=None,
-    executor_in_body=False,
     output_path=None,
 ):
     """
@@ -607,17 +575,11 @@ def create_letter(
         ФИО исполнителя (Фамилия Имя Отчество). По умолчанию из конфигурации.
 
     executor_title : str
-        Должность исполнителя. Используется при executor_in_body=True.
-        Пример: "начальник Управления по перспективному развитию медицинской деятельности, к.м.н."
+        Должность исполнителя. Опционально. Если указана, выводится
+        отдельной строкой между ФИО и телефоном.
 
     executor_phone : str
         Телефон исполнителя. По умолчанию из конфигурации.
-
-    executor_in_body : bool
-        Если True — исполнитель размещается в теле документа серым текстом (8pt)
-        на странице с подписантом, а не в колонтитуле первой страницы.
-        Использовать для многостраничных писем (>1 страницы).
-        По умолчанию False (колонтитул первой страницы).
 
     output_path : str | None
         Путь для сохранения. По умолчанию "Письмо_<дата>.docx".
@@ -743,23 +705,16 @@ def create_letter(
     _build_signature_table(doc, signer_title, signer_name)
 
     # ── Исполнитель ──────────────────────────────────────────────────────
-    if executor_in_body:
-        # Многостраничное письмо: исполнитель в теле документа (серый, 8pt)
-        for _ in range(7):
-            _para(doc, "", space_after=0)
-        _build_executor_body(doc, executor_name, executor_title, executor_phone)
-    else:
-        # Одностраничное письмо: исполнитель в колонтитуле первой страницы
-        for _ in range(7):
-            _para(doc, "", space_after=0)
-        _build_first_page_footer(section, executor_name, executor_phone)
+    # Всегда в теле документа после блока подписи, отделён пустыми строками.
+    for _ in range(5):
+        _para(doc, "", space_after=0)
+    _build_executor_body(doc, executor_name, executor_title, executor_phone)
 
     # ── Сохранение ───────────────────────────────────────────────────────
     output_path = os.path.expanduser(output_path)
     doc.save(output_path)
     log_generation("letter", greeting, output_path, {
         "has_appendix": bool(appendix_text),
-        "executor_in_body": executor_in_body,
         "has_on_number": bool(on_number),
     })
     return output_path

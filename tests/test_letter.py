@@ -65,11 +65,10 @@ class TestCreateLetterParams:
         )
         assert os.path.isfile(path)
 
-    def test_executor_in_body(self, tmp_path):
+    def test_executor_with_title(self, tmp_path):
         path = create_letter(
             addressee_lines=["Директору", "ООО «Тест»"],
             body_paragraphs=["Текст письма."],
-            executor_in_body=True,
             executor_name="Тестов Тест Тестович",
             executor_title="Начальник отдела",
             executor_phone="+7 (000) 000-00-00",
