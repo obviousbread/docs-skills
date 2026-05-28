@@ -507,6 +507,134 @@ def _auto_punctuate_dashed(paragraphs):
     return items
 
 
+# ─── Word-native списки (numbering.xml) ──────────────────────────────────────
+
+def _empty_numbering_xml():
+    """Пустой numbering-part: для документов, у которых нет numbering-part в шаблоне."""
+    return (
+        '<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>'
+    )
+
+
+def _ensure_numbering_part(doc):
+    """Гарантировать наличие numbering-part в документе и вернуть его XML-элемент.
+
+    Если шаблон уже содержит numbering — возвращает существующий элемент;
+    свои abstractNum мы поверх него добавим динамически (см. _allocate_*).
+    """
+    from docx.opc.constants import CONTENT_TYPE, RELATIONSHIP_TYPE
+    from docx.parts.numbering import NumberingPart
+    from docx.opc.packuri import PackURI
+
+    main_part = doc.part
+    for rel in main_part.rels.values():
+        if rel.reltype == RELATIONSHIP_TYPE.NUMBERING:
+            return rel.target_part.element
+
+    partname = PackURI("/word/numbering.xml")
+    xml_bytes = _empty_numbering_xml().encode("utf-8")
+    numbering_part = NumberingPart.load(
+        partname, CONTENT_TYPE.WML_NUMBERING, xml_bytes, main_part.package
+    )
+    main_part.relate_to(numbering_part, RELATIONSHIP_TYPE.NUMBERING)
+    return numbering_part.element
+
+
+def _next_abstract_id(numbering_el):
+    """Свободный abstractNumId поверх существующих в шаблоне."""
+    abstracts = numbering_el.findall(qn("w:abstractNum"))
+    used = {int(a.get(qn("w:abstractNumId"))) for a in abstracts}
+    return max(used, default=-1) + 1
+
+
+def _next_num_id(numbering_el):
+    """Свободный numId поверх существующих в шаблоне."""
+    nums = numbering_el.findall(qn("w:num"))
+    used = {int(n.get(qn("w:numId"))) for n in nums}
+    return max(used, default=0) + 1
+
+
+def _add_abstract_bullet(numbering_el):
+    """Добавить abstractNum для en-dash маркированного списка. Возвращает abstractNumId."""
+    abs_id = _next_abstract_id(numbering_el)
+    xml = (
+        f'<w:abstractNum xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:abstractNumId="{abs_id}">'
+        '<w:multiLevelType w:val="hybridMultilevel"/>'
+        '<w:lvl w:ilvl="0">'
+        '<w:start w:val="1"/>'
+        '<w:numFmt w:val="bullet"/>'
+        '<w:lvlText w:val="–"/>'
+        '<w:lvlJc w:val="left"/>'
+        '<w:pPr><w:ind w:left="709" w:hanging="709"/></w:pPr>'
+        '<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:hint="default"/></w:rPr>'
+        '</w:lvl>'
+        '</w:abstractNum>'
+    )
+    from lxml import etree
+    el = etree.fromstring(xml)
+    # Вставить перед первым <w:num>, если он есть; abstractNum должны идти раньше num.
+    first_num = numbering_el.find(qn("w:num"))
+    if first_num is not None:
+        first_num.addprevious(el)
+    else:
+        numbering_el.append(el)
+    return abs_id
+
+
+def _add_abstract_decimal(numbering_el):
+    """Добавить abstractNum для нумерованного списка «1., 2., 3., ...». Возвращает abstractNumId."""
+    abs_id = _next_abstract_id(numbering_el)
+    xml = (
+        f'<w:abstractNum xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:abstractNumId="{abs_id}">'
+        '<w:multiLevelType w:val="hybridMultilevel"/>'
+        '<w:lvl w:ilvl="0">'
+        '<w:start w:val="1"/>'
+        '<w:numFmt w:val="decimal"/>'
+        '<w:lvlText w:val="%1."/>'
+        '<w:lvlJc w:val="left"/>'
+        '<w:pPr><w:ind w:left="709" w:hanging="709"/></w:pPr>'
+        '</w:lvl>'
+        '</w:abstractNum>'
+    )
+    from lxml import etree
+    el = etree.fromstring(xml)
+    first_num = numbering_el.find(qn("w:num"))
+    if first_num is not None:
+        first_num.addprevious(el)
+    else:
+        numbering_el.append(el)
+    return abs_id
+
+
+def _add_num(numbering_el, abstract_num_id):
+    """Зарегистрировать новый <w:num>, ссылающийся на указанный abstractNumId.
+
+    Возвращает выделенный numId. Для numbered — каждая группа берёт свой numId
+    (нумерация стартует с 1). Для dashed — все группы делят один numId.
+    """
+    num_id = _next_num_id(numbering_el)
+    num_el = OxmlElement("w:num")
+    num_el.set(qn("w:numId"), str(num_id))
+    abstract_ref = OxmlElement("w:abstractNumId")
+    abstract_ref.set(qn("w:val"), str(abstract_num_id))
+    num_el.append(abstract_ref)
+    numbering_el.append(num_el)
+    return num_id
+
+
+def _apply_list_format(para, num_id, ilvl=0):
+    """Привязать параграф к Word-списку через <w:numPr>."""
+    pPr = para._element.get_or_add_pPr()
+    numPr = OxmlElement("w:numPr")
+    ilvl_el = OxmlElement("w:ilvl")
+    ilvl_el.set(qn("w:val"), str(ilvl))
+    num_id_el = OxmlElement("w:numId")
+    num_id_el.set(qn("w:val"), str(num_id))
+    numPr.append(ilvl_el)
+    numPr.append(num_id_el)
+    pPr.insert(0, numPr)
+
+
 # ─── Основная функция ────────────────────────────────────────────────────────
 
 def create_letter(
@@ -646,17 +774,32 @@ def create_letter(
     _para(doc, "", space_after=0)
 
     # ── Тело письма ──────────────────────────────────────────────────────
-    num_counter = [0]  # mutable для нумерации
-
     # Автопунктуация dashed-элементов: «;» после каждого, «.» после последнего в группе
     body_paragraphs = _auto_punctuate_dashed(body_paragraphs)
 
+    # Word-native списки. Поверх любого numbering из шаблона добавляются
+    # два abstractNum: en-dash bullet и decimal. Dashed-элементы делят один
+    # numId; каждая нумерованная группа получает свой numId (рестарт с 1).
+    numbering_el = None
+    dashed_num_id = None
+    decimal_abstract_id = None
+    current_numbered_id = None
+    prev_was_numbered = False
+
+    def _need_numbering():
+        nonlocal numbering_el, dashed_num_id, decimal_abstract_id
+        if numbering_el is None:
+            numbering_el = _ensure_numbering_part(doc)
+            bullet_abs = _add_abstract_bullet(numbering_el)
+            dashed_num_id = _add_num(numbering_el, bullet_abs)
+            decimal_abstract_id = _add_abstract_decimal(numbering_el)
+
     for item in body_paragraphs:
         if isinstance(item, str):
-            # Обычный абзац с красной строкой
             p = _para(doc, item, size=14,
                       align=WD_ALIGN_PARAGRAPH.JUSTIFY,
                       first_indent=1.25, space_after=0)
+            prev_was_numbered = False
         elif isinstance(item, dict):
             text = item.get("text", "")
             is_bold = item.get("bold", False)
@@ -666,25 +809,32 @@ def create_letter(
             has_indent = item.get("indent", True)
 
             if is_numbered:
-                num_counter[0] += 1
-                text = f"{num_counter[0]}. {text}"
+                _need_numbering()
+                if not prev_was_numbered:
+                    current_numbered_id = _add_num(numbering_el, decimal_abstract_id)
                 p = _para(doc, text, size=14, bold=is_bold,
                           align=WD_ALIGN_PARAGRAPH.JUSTIFY,
-                          first_indent=1.25, space_after=0)
+                          space_after=0)
+                _apply_list_format(p, current_numbered_id)
+                prev_was_numbered = True
             elif is_dashed:
-                text = f"– {text}"
+                _need_numbering()
                 p = _para(doc, text, size=14, bold=is_bold,
                           align=WD_ALIGN_PARAGRAPH.JUSTIFY,
-                          first_indent=1.25, space_after=0)
+                          space_after=0)
+                _apply_list_format(p, dashed_num_id)
+                prev_was_numbered = False
             elif is_center:
                 p = _para(doc, text, size=14, bold=is_bold,
                           align=WD_ALIGN_PARAGRAPH.CENTER,
                           space_after=0)
+                prev_was_numbered = False
             else:
                 fi = 1.25 if has_indent else None
                 p = _para(doc, text, size=14, bold=is_bold,
                           align=WD_ALIGN_PARAGRAPH.JUSTIFY,
                           first_indent=fi, space_after=0)
+                prev_was_numbered = False
 
     # ── Пустая строка после текста ───────────────────────────────────────
     _para(doc, "", space_after=0)
