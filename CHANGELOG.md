@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.1.0
+
+### docs-letter
+
+- **BREAKING**: dropped `executor_in_body` parameter from `create_letter()`. The executor block is now always placed in the body of the document after the signature, separated by 5 empty paragraphs (gray 8pt). The first-page footer mode and `_build_first_page_footer` are removed.
+- Header is now a 2-column table (left = blank requisites, right = addressee). The previously empty middle spacer column is gone; the addressee cell loses its inner left indent and aligns flush-left.
+- Lists (`numbered`, `dashed`) are now real Word lists (registered in `numbering.xml`, attached via `<w:numPr>`) instead of plain paragraphs with manual `"1. "` or `"– "` prefixes. Each consecutive `numbered` group claims a fresh `numId` so numbering restarts as expected; `dashed` items share one en-dash bullet list.
+- Style: forbid the `«В ответ на Ваше письмо от ДД.ММ.ГГГГ № ХХХ сообщаем/направляем...»` opener — the incoming letter's metadata is already in the header `на №` field. Replaced with `«Сообщаем Вам...»`, `«По Вашему запросу...»`, `«Направляем Вам...»`, `«Во исполнение...»` in `letter-patterns.md` (§1, §2, §13) and the example in `usage-examples.md`.
+- Style: codified lowercase/uppercase rules for act references. Lowercase for act types as common nouns (приказ, распоряжение, постановление, протокол, письмо, ...); uppercase for proper names of supreme NPAs (Конституция, Федеральный закон, Указ Президента, Кодекс as part of a name, ...). Full citation format documented with worked examples in `letter-patterns.md`.
+- Style: introduced abbreviation `(далее — X)` only if X is used later in the body. Added a pre-flight check before the preview step and a checklist entry; bare "(далее — ФГБУ «Научный центр»)" with no downstream use is forbidden.
+
 ## 0.0.4
 
 ### docs-finetune
