@@ -275,3 +275,23 @@ class TestSignatureBlock:
         protocol_generate._make_signature_block(doc, chair, org)
         right = doc.tables[0].rows[0].cells[1].text.strip()
         assert right == "А.А. Алмазов"
+
+
+class TestSecretaryBlock:
+    def test_no_secretary_no_paragraphs(self):
+        from docx import Document
+        doc = Document()
+        before = len(doc.paragraphs)
+        protocol_generate._make_secretary_block(doc, None)
+        assert len(doc.paragraphs) == before
+
+    def test_secretary_adds_two_paragraphs(self):
+        from docx import Document
+        doc = Document()
+        protocol_generate._make_secretary_block(doc, {
+            "lastname": "Деревьев", "initials": "Д.Д.",
+            "position": "ведущий специалист",
+        })
+        texts = [p.text for p in doc.paragraphs]
+        assert "Секретарь" in texts
+        assert any("Д.Д. Деревьев" in t for t in texts)

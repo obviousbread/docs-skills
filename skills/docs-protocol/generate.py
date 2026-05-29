@@ -642,6 +642,22 @@ def _make_signature_block(doc, chair, org):
         p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
 
+def _make_secretary_block(doc, secretary):
+    """Два Normal-параграфа: «Секретарь» (label) и «должность \t ФИО» с табом."""
+    if not secretary:
+        return
+    p1 = doc.add_paragraph()
+    p1.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    _run(p1, "Секретарь", bold=True, size=14)
+
+    p2 = doc.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    _run(p2, secretary["position"], size=14)
+    _run(p2, "\t", size=14)
+    fio_first = _format_fio_initials_first(f"{secretary['lastname']} {secretary['initials']}")
+    _run(p2, fio_first, size=14)
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
