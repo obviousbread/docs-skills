@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 0.2.0
+
+### docs-protocol
+
+- Added portable `docs-protocol` skill for generating meeting minutes (.docx) in the format of the reference protocol from 2026-05-12. Public API: `create_protocol(subtype, chair, attendees, items, venue, doc_date, doc_number, secretary, notify_persons, output_path)`. Generates header, title block («ПРОТОКОЛ\n<subtype>»), date+number table, venue/chair block, attendees table, «РЕШИЛИ» with Word-native decimal numbering, signature block (two-line position), optional secretary block, and a mandatory acquaintance sheet (union of attendees and responsibles, deduplicated and sorted A-Я, chair excluded as signatory).
+- Edit sub-workflow: `edit_protocol(src_path, edits)` copies the source with «2» suffix and inserts edits via Word track changes (`w:ins`/`w:del`). Original file is never touched.
+- Staff verification: `_verify_fios` hard-fails on unknown FIO with top-3..5 fuzzy candidates via `difflib.get_close_matches` (no external dependency).
+- Heuristic input classification (raw notes / structured / ready list) by presence of «Председатель:» / «Решили:» / «Присутствовали:» markers.
+
+### installer
+
+- Added `docs-protocol` to the SKILLS array in `bin/install.js`.
+
+### docs-init
+
+- Block 6 (output paths) now also asks for the protocol folder (`output_dir_protocol`).
+
+### docs-finetune
+
+- Indexes protocol examples from `~/.docs-plugin/protocol/examples/`.
+
+### references
+
+- `references/org_details.md.example`: added `output_dir_protocol` field under «Пути вывода».
+
 ## 0.1.0
 
 ### docs-letter
