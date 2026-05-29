@@ -115,3 +115,19 @@ class TestDateNumberTable:
         doc = Document()
         protocol_generate._make_date_number_table(doc, "12.05.2026", "42")
         assert doc.tables[0].rows[0].cells[1].text.strip() == "№ 42"
+
+
+class TestVenueChairBlock:
+    def test_labels_bold(self):
+        from docx import Document
+        doc = Document()
+        chair = {"lastname": "Алмазов", "initials": "А.А.",
+                 "position": "и.о. директора"}
+        protocol_generate._make_venue_chair_block(doc, "Москва", chair)
+        labels = []
+        for p in doc.paragraphs:
+            for r in p.runs:
+                if r.bold and r.text in ("Место проведения: ", "Председатель: "):
+                    labels.append(r.text)
+        assert "Место проведения: " in labels
+        assert "Председатель: " in labels

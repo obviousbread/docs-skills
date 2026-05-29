@@ -421,6 +421,23 @@ def _make_date_number_table(doc, doc_date, doc_number):
     return table
 
 
+def _make_venue_chair_block(doc, venue, chair):
+    """Три параграфа: «Место проведения: ...», «Председатель: ...» (метка жирная)."""
+    if venue:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        p.paragraph_format.first_line_indent = Cm(1.25)
+        _run(p, "Место проведения: ", bold=True, size=14)
+        _run(p, venue, size=14)
+
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p.paragraph_format.first_line_indent = Cm(1.25)
+    _run(p, "Председатель: ", bold=True, size=14)
+    chair_text = f"{chair['lastname']} {chair['initials']} — {chair['position']}"
+    _run(p, chair_text, size=14)
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
