@@ -809,3 +809,64 @@ def create_protocol(
         "chair": chair, "attendees_count": len(attendees), "items_count": len(items),
     })
     return output_path
+
+
+def edit_protocol(src_path, edits):
+    """Создать копию протокола с суффиксом «2» и внести edits через track changes.
+
+    Args:
+        src_path: путь к оригиналу.
+        edits: list[{"find": str, "replace": str}] — простые замены строк.
+
+    Returns:
+        Путь к копии с track changes.
+    """
+    from docx.oxml import parse_xml
+    from xml.sax.saxutils import escape
+
+    if not os.path.exists(src_path):
+        raise FileNotFoundError(src_path)
+
+    # Имя копии: вставить « 2» перед расширением
+    base, ext = os.path.splitext(src_path)
+    dst_path = f"{base} 2{ext}"
+    shutil.copy(src_path, dst_path)
+
+    doc = Document(dst_path)
+
+    # Включить trackChanges в settings.xml
+    settings = doc.settings.element
+    if settings.find(qn("w:trackChanges")) is None:
+        settings.append(parse_xml(
+            '<w:trackChanges xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>'
+        ))
+
+    # Применить edits: для каждой подходящей пары (find, replace) добавить
+    # w:ins с новым текстом и w:del со старым в конец совпавшего параграфа.
+    # MVP: правки добавляются в конец параграфа, а не точечная inline-замена.
+    rev_id = 1
+    for edit in edits:
+        find_text = edit["find"]
+        replace_text = edit["replace"]
+        for p in doc.paragraphs:
+            if find_text in p.text:
+                ins = parse_xml(
+                    f'<w:ins xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+                    f'w:id="{rev_id}" w:author="docs-protocol" w:date="2026-05-29T00:00:00Z">'
+                    f'<w:r><w:t xml:space="preserve"> {escape(replace_text)}</w:t></w:r>'
+                    f'</w:ins>'
+                )
+                p._p.append(ins)
+                rev_id += 1
+                deletion = parse_xml(
+                    f'<w:del xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+                    f'w:id="{rev_id}" w:author="docs-protocol" w:date="2026-05-29T00:00:00Z">'
+                    f'<w:r><w:delText xml:space="preserve"> {escape(find_text)}</w:delText></w:r>'
+                    f'</w:del>'
+                )
+                p._p.append(deletion)
+                rev_id += 1
+                break
+
+    doc.save(dst_path)
+    return dst_path

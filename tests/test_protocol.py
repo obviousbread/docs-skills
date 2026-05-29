@@ -584,3 +584,43 @@ class TestStaffVerification:
         msg = str(exc.value)
         assert "staff_file" in msg
         assert "org_details.md" in msg
+
+
+class TestEditProtocol:
+    def test_edit_protocol_creates_copy_with_track_changes(self, tmp_path):
+        from docx import Document
+        from docx.oxml.ns import qn
+
+        # Создать исходник через create_protocol
+        src = create_protocol(
+            subtype="оперативного совещания",
+            chair={"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."},
+            attendees=[{"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"}],
+            items=[{"text": "Подготовить отчёт.", "responsible": ["Бирюзов Б.Б."],
+                    "deadline": "01.06.2026", "subitems": None}],
+            venue="Москва", doc_date="12.05.2026",
+            output_path=str(tmp_path / "Протокол оперативного совещания 12.05.2026.docx"),
+        )
+        original_mtime = os.path.getmtime(src)
+        original_size = os.path.getsize(src)
+
+        # Edit
+        edits = [{"find": "Подготовить отчёт.", "replace": "Подготовить отчёт по обращениям."}]
+        dst = protocol_generate.edit_protocol(src, edits)
+
+        # Копия с суффиксом 2
+        assert dst.endswith(" 2.docx")
+        assert os.path.isfile(dst)
+
+        # Оригинал не изменён
+        assert os.path.getmtime(src) == original_mtime
+        assert os.path.getsize(src) == original_size
+
+        # В копии включён trackChanges
+        doc = Document(dst)
+        settings = doc.settings.element
+        assert settings.find(qn("w:trackChanges")) is not None
+
+        # В копии есть w:ins или w:del
+        body_xml = doc.element.body.xml
+        assert "w:ins" in body_xml or "w:del" in body_xml
