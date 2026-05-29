@@ -59,3 +59,18 @@ class TestOrgConfig:
         cfg = protocol_generate._build_org_config()
         assert any("Тестовое агентство" in l for l in cfg["header_lines"])
         assert any("Центр тестирования" in l for l in cfg["header_lines"])
+
+
+class TestFormatters:
+    def test_format_ru_date(self):
+        assert protocol_generate._format_ru_date("12.05.2026") == "12 мая 2026 г."
+
+    def test_format_ru_date_january(self):
+        assert protocol_generate._format_ru_date("01.01.2026") == "1 января 2026 г."
+
+    def test_format_fio_initials_first(self):
+        assert protocol_generate._format_fio_initials_first("Иванов И.И.") == "И.И. Иванов"
+
+    def test_format_fio_already_initials_first(self):
+        # Если уже «И.О. Фамилия» — вернуть как есть.
+        assert protocol_generate._format_fio_initials_first("И.И. Иванов") == "И.И. Иванов"

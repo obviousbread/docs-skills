@@ -351,6 +351,31 @@ def _build_org_config():
     }
 
 
+_RU_MONTHS = [
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+]
+
+
+def _format_ru_date(date_str):
+    """«DD.MM.YYYY» → «D месяца YYYY г.» (день без ведущего нуля)."""
+    d, m, y = date_str.split(".")
+    return f"{int(d)} {_RU_MONTHS[int(m) - 1]} {y} г."
+
+
+def _format_fio_initials_first(fio):
+    """«Фамилия И.О.» → «И.О. Фамилия». Если уже в нужном порядке — вернуть как есть."""
+    fio = fio.strip()
+    parts = fio.split()
+    if len(parts) != 2:
+        return fio
+    a, b = parts
+    # Эвристика: инициалы — две заглавные с точками.
+    if "." in a and "." not in b:
+        return fio  # уже «И.О. Фамилия»
+    return f"{b} {a}"
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
