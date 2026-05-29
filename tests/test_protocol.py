@@ -358,3 +358,155 @@ class TestNotifySheet:
         t = doc.tables[-1]
         assert len(t.rows) == 2
         assert "Бирюзов Б.Б." in t.rows[1].cells[2].text
+
+
+class TestIntegration:
+    """Интеграционные тесты по спеке (секция 6)."""
+
+    def _minimal_args(self, tmp_path):
+        return dict(
+            subtype="оперативного совещания",
+            chair={"lastname": "Алмазов", "initials": "А.А.",
+                   "position": "и.о. генерального директора"},
+            attendees=[
+                {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "начальник отдела кадров"},
+                {"lastname": "Васильков", "initials": "В.В.", "position": "начальник отдела ИТ"},
+            ],
+            items=[
+                {"text": "Подготовить отчёт.", "responsible": ["Бирюзов Б.Б."],
+                 "deadline": "01.06.2026", "subitems": None},
+            ],
+            venue="г. Москва, конференц-зал",
+            doc_date="12.05.2026",
+            output_path=str(tmp_path / "p.docx"),
+        )
+
+    def test_basic_operational(self, tmp_path):
+        path = create_protocol(**self._minimal_args(tmp_path))
+        assert os.path.isfile(path)
+
+    def test_general_director(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        args["subtype"] = "совещания у генерального директора"
+        path = create_protocol(**args)
+        assert os.path.isfile(path)
+
+    def test_custom_subtype(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        args["subtype"] = "рабочей встречи по вопросам ИТ"
+        path = create_protocol(**args)
+        assert os.path.isfile(path)
+
+    def test_chair_in_attendees_filtered(self, tmp_path, recwarn):
+        args = self._minimal_args(tmp_path)
+        args["attendees"] = [args["chair"]] + args["attendees"]
+        path = create_protocol(**args)
+        assert os.path.isfile(path)
+        assert any("Председатель" in str(w.message) for w in recwarn.list)
+
+    def test_subitems_and_no_deadline(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        args["items"] = [{
+            "text": "Главный пункт.",
+            "responsible": ["Бирюзов Б.Б."],
+            "deadline": None,
+            "subitems": ["подпункт один;", "подпункт два."],
+        }]
+        path = create_protocol(**args)
+        assert os.path.isfile(path)
+        from docx import Document
+        doc = Document(path)
+        text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Срок:" in text
+        for p in doc.paragraphs:
+            if p.runs and p.runs[0].text == "Срок: ":
+                tail = "".join(r.text for r in p.runs[1:])
+                assert tail == ""
+
+    def test_secretary_optional(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        args["secretary"] = {"lastname": "Деревьев", "initials": "Д.Д.",
+                             "position": "ведущий специалист"}
+        path = create_protocol(**args)
+        from docx import Document
+        doc = Document(path)
+        text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Секретарь" in text and "Д.Д. Деревьев" in text
+
+    def test_notify_sheet_union(self, tmp_path, mock_staff):
+        args = self._minimal_args(tmp_path)
+        args["items"] = [
+            {"text": "X.", "responsible": ["Гранатов Г.Г."],
+             "deadline": None, "subitems": None},
+        ]
+        path = create_protocol(**args)
+        from docx import Document
+        doc = Document(path)
+        notify_table = doc.tables[-1]
+        fio_col = [r.cells[2].text for r in notify_table.rows[1:]]
+        assert any("Бирюзов" in f for f in fio_col)
+        assert any("Васильков" in f for f in fio_col)
+        assert any("Гранатов" in f for f in fio_col)
+        assert not any("Алмазов" in f for f in fio_col)
+
+    def test_numbering_word_native(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        args["items"] = [
+            {"text": "Пункт один.", "responsible": None, "deadline": None,
+             "subitems": ["подпункт A;"]},
+            {"text": "Пункт два.", "responsible": None, "deadline": None,
+             "subitems": None},
+        ]
+        path = create_protocol(**args)
+        from docx import Document
+        doc = Document(path)
+        numbering = doc.part.numbering_part.element
+        abs_nums = numbering.findall(qn("w:abstractNum"))
+        formats = []
+        for an in abs_nums:
+            lvl = an.find(qn("w:lvl"))
+            if lvl is None:
+                continue
+            fmt = lvl.find(qn("w:numFmt"))
+            text = lvl.find(qn("w:lvlText"))
+            if fmt is not None and text is not None:
+                formats.append((fmt.get(qn("w:val")), text.get(qn("w:val"))))
+        assert ("decimal", "%1.") in formats
+        assert ("bullet", "–") in formats
+
+    def test_signature_block_two_lines(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        path = create_protocol(**args)
+        from docx import Document
+        doc = Document(path)
+        sig_table = doc.tables[-2]
+        left = sig_table.rows[0].cells[0]
+        non_empty_paras = [p for p in left.paragraphs if p.text.strip()]
+        assert len(non_empty_paras) >= 2
+
+    def test_date_formatting(self, tmp_path):
+        args = self._minimal_args(tmp_path)
+        args["doc_date"] = "12.05.2026"
+        path = create_protocol(**args)
+        from docx import Document
+        doc = Document(path)
+        text = "\n".join(c.text for t in doc.tables for r in t.rows for c in r.cells)
+        assert "12 мая 2026 г." in text
+
+    def test_no_slashes_in_text(self, tmp_path):
+        import warnings as _w
+        args = self._minimal_args(tmp_path)
+        args["items"] = [{"text": "Передать отчёт/копию руководителю.",
+                          "responsible": None, "deadline": None, "subitems": None}]
+        with _w.catch_warnings(record=True) as warn_log:
+            _w.simplefilter("always")
+            create_protocol(**args)
+        assert any("Косая черта" in str(w.message) for w in warn_log)
+
+    def test_default_filename(self, tmp_path, monkeypatch):
+        args = self._minimal_args(tmp_path)
+        args.pop("output_path")
+        path = create_protocol(**args)
+        assert os.path.isfile(path)
+        assert os.path.basename(path) == "Протокол оперативного совещания 12.05.2026.docx"
+        os.remove(path)

@@ -721,6 +721,52 @@ def _make_notify_sheet(doc, persons):
         _cell_text(cells[3], "")
 
 
-def create_protocol(*args, **kwargs):
-    """Заглушка — реализация в Task B15."""
-    raise NotImplementedError("create_protocol будет реализован в Task B15")
+def create_protocol(
+    subtype,
+    chair,
+    attendees,
+    items,
+    venue="",
+    doc_date=None,
+    doc_number="",
+    secretary=None,
+    notify_persons=None,
+    output_path=None,
+):
+    """Собрать протокол совещания (.docx) и сохранить его. Возвращает путь."""
+    if doc_date is None:
+        doc_date = date.today().strftime("%d.%m.%Y")
+
+    org = _build_org_config()
+
+    # Сверка ФИО — Task C2 (в Phase B оставляем no-op, чтобы happy-path тесты прошли)
+    # _verify_fios(chair, attendees, items)
+
+    doc = new_document()
+    _make_header_block(doc, org)
+    _make_title_block(doc, subtype)
+    _make_date_number_table(doc, doc_date, doc_number)
+    _make_venue_chair_block(doc, venue, chair)
+    _make_attendees_table(doc, attendees, chair)
+    _make_resolved_block(doc, items)
+    _make_signature_block(doc, chair, org)
+    if secretary:
+        _make_secretary_block(doc, secretary)
+
+    if notify_persons is None:
+        notify_persons = _build_notify_persons(chair, attendees, items, _load_staff())
+    if notify_persons:
+        _make_notify_sheet(doc, notify_persons)
+
+    # Имя файла
+    if output_path is None:
+        out_dir = os.path.expanduser(org.get("output_dir_protocol") or "~")
+        os.makedirs(out_dir, exist_ok=True)
+        filename = f"Протокол {subtype} {doc_date}.docx"
+        output_path = os.path.join(out_dir, filename)
+
+    doc.save(output_path)
+    log_generation("protocol", subtype, output_path, params={
+        "chair": chair, "attendees_count": len(attendees), "items_count": len(items),
+    })
+    return output_path
