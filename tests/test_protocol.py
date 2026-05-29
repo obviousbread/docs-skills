@@ -565,3 +565,22 @@ class TestStaffVerification:
         }
         with _pt.raises(ValueError):
             create_protocol(**args)
+
+    def test_empty_staff_loader_raises_config_error(self, monkeypatch, tmp_path):
+        """Если _load_staff() вернул [] (кривой config) — явная ошибка с подсказкой про org_details.md."""
+        import pytest as _pt
+        monkeypatch.setattr(protocol_generate, "_load_staff", lambda: [])
+        args = {
+            "subtype": "оперативного совещания",
+            "chair": {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."},
+            "attendees": [{"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"}],
+            "items": [{"text": "X.", "responsible": None, "deadline": None, "subitems": None}],
+            "venue": "Москва",
+            "doc_date": "12.05.2026",
+            "output_path": str(tmp_path / "p.docx"),
+        }
+        with _pt.raises(ValueError) as exc:
+            create_protocol(**args)
+        msg = str(exc.value)
+        assert "staff_file" in msg
+        assert "org_details.md" in msg

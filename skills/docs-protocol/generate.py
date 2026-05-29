@@ -118,8 +118,14 @@ def _verify_fios(chair, attendees, items, staff=None):
     """Hard fail если ФИО не найден в штате. Перед fail — fuzzy top-3..5."""
     if staff is None:
         staff = _load_staff()
+        if not staff:
+            raise ValueError(
+                "Не удалось загрузить штатный список для сверки ФИО. "
+                "Проверьте поле «staff_file» в ~/.docs-plugin/org_details.md "
+                "(файл должен существовать и содержать колонки «Фамилия», «Имя», «Отчество», «Должность»)."
+            )
     if not staff:
-        return  # без штата — пропускаем сверку (тесты без staff_file)
+        return  # явный пустой аргумент = опциональный пропуск (тесты)
 
     known = {(s["lastname"].lower(), s["initials"].lower()): s for s in staff}
     known_strings = [f"{s['lastname']} {s['initials']}" for s in staff]
