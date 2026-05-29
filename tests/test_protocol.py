@@ -253,6 +253,21 @@ class TestResolvedBlock:
         for p in sub_paras:
             assert p._p.find(qn("w:pPr/w:numPr") if False else qn("w:pPr")) is not None
 
+    def test_responsible_single_period(self):
+        from docx import Document
+        doc = Document()
+        items = [{
+            "text": "X.",
+            "responsible": ["Бирюзов Б.Б.", "Сидоров С.С."],
+            "deadline": None,
+            "subitems": None,
+        }]
+        protocol_generate._make_resolved_block(doc, items)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "Бирюзов Б.Б.." not in all_text
+        assert "Сидоров С.С.." not in all_text
+        assert "Бирюзов Б.Б., Сидоров С.С." in all_text
+
 
 class TestSignatureBlock:
     def test_left_cell_two_lines(self):

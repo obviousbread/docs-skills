@@ -591,7 +591,7 @@ def _make_resolved_item(doc, item, num_id, dash_id):
         rp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         rp.paragraph_format.first_line_indent = Cm(1.25)
         _run(rp, "Ответственные: ", bold=True, size=14)
-        _run(rp, responsible_text + ".", size=14)
+        _run(rp, responsible_text.rstrip(".") + ".", size=14)
 
     # Срок
     sp = doc.add_paragraph()
