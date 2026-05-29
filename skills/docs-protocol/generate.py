@@ -213,7 +213,7 @@ def _set_table_borders(table):
     tblPr.append(tblBorders)
 
 
-def _run(para, text, size=14, bold=False, font_name="Times New Roman"):
+def _run(para, text, size=14, bold=False, italic=False, font_name="Times New Roman"):
     """Добавить run к параграфу с настройками шрифта и языком ru-RU.
 
     Если *text* содержит ``\\n``, каждый перенос превращается в мягкий
@@ -232,6 +232,7 @@ def _run(para, text, size=14, bold=False, font_name="Times New Roman"):
             run.font.name = font_name
             run.font.size = Pt(size)
             run.bold = bold
+            run.italic = italic
             rPr = run._element.rPr
             rPr.rFonts.set(qn("w:eastAsia"), font_name)
             lang = rPr.find(qn("w:lang"))
@@ -374,6 +375,24 @@ def _format_fio_initials_first(fio):
     if "." in a and "." not in b:
         return fio  # уже «И.О. Фамилия»
     return f"{b} {a}"
+
+
+def _make_header_block(doc, org):
+    """Шапка: 4 строки центр+жирный 14pt + пустая + 2 строки 10pt."""
+    for line in org["header_lines"]:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _run(p, line, bold=True, size=14)
+    # Пустая строка-разделитель
+    doc.add_paragraph()
+    if org["address"]:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _run(p, org["address"], italic=True, size=10)
+    if org["phone_fax"]:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _run(p, org["phone_fax"], italic=True, size=10)
 
 
 def create_protocol(*args, **kwargs):

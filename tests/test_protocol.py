@@ -3,6 +3,8 @@
 import os
 import warnings
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
 from conftest import protocol_generate
 
 create_protocol = protocol_generate.create_protocol
@@ -74,3 +76,15 @@ class TestFormatters:
     def test_format_fio_already_initials_first(self):
         # Если уже «И.О. Фамилия» — вернуть как есть.
         assert protocol_generate._format_fio_initials_first("И.И. Иванов") == "И.И. Иванов"
+
+
+class TestHeaderBlock:
+    def test_header_has_4_centered_bold_lines(self):
+        from docx import Document
+        doc = Document()
+        cfg = protocol_generate._build_org_config()
+        protocol_generate._make_header_block(doc, cfg)
+        bold_centered = [p for p in doc.paragraphs
+                         if p.alignment == WD_ALIGN_PARAGRAPH.CENTER
+                         and any(r.bold for r in p.runs)]
+        assert len(bold_centered) >= 2  # parent_org + full_name + (short_name)
