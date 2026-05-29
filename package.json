@@ -1,6 +1,6 @@
 {
   "name": "@obviousbread/docs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Portable agent skills for generating documents (.docx).",
   "license": "MIT",
   "bin": {
