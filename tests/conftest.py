@@ -40,6 +40,10 @@ di_generate = _load_module(
     "di_generate",
     os.path.join(REPO_ROOT, "skills", "docs-di", "generate.py"),
 )
+protocol_generate = _load_module(
+    "protocol_generate",
+    os.path.join(REPO_ROOT, "skills", "docs-protocol", "generate.py"),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +78,7 @@ def mock_org_config():
         "output_dir_letter": "/tmp",
         "output_dir_memo": "/tmp",
         "output_dir_di": "/tmp",
+        "output_dir_protocol": "/tmp",
     }
 
 
@@ -90,3 +95,26 @@ def patch_org_details(monkeypatch, mock_org_config):
     monkeypatch.setattr(letter_generate, "log_generation", _noop)
     monkeypatch.setattr(memo_generate, "log_generation", _noop)
     monkeypatch.setattr(di_generate, "log_generation", _noop)
+    monkeypatch.setattr(protocol_generate, "_load_org_details", lambda: mock_org_config)
+    monkeypatch.setattr(protocol_generate, "log_generation", _noop, raising=False)
+
+
+@pytest.fixture()
+def mock_staff():
+    """Выдуманный штатный список для тестов (никаких реальных людей)."""
+    return [
+        {"lastname": "Алмазов", "initials": "А.А.", "position": "заместитель директора по медицинской части"},
+        {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "начальник отдела кадров"},
+        {"lastname": "Васильков", "initials": "В.В.", "position": "начальник отдела ИТ"},
+        {"lastname": "Гранатов", "initials": "Г.Г.", "position": "юрисконсульт"},
+        {"lastname": "Деревьев", "initials": "Д.Д.", "position": "главный бухгалтер"},
+        {"lastname": "Ёлкин", "initials": "Ё.Ё.", "position": "ведущий специалист"},
+        {"lastname": "Жуков", "initials": "Ж.Ж.", "position": "специалист отдела закупок"},
+        {"lastname": "Зайцев", "initials": "З.З.", "position": "начальник АХО"},
+    ]
+
+
+@pytest.fixture(autouse=True)
+def patch_staff_loader(monkeypatch, mock_staff):
+    """Подменить _load_staff в protocol_generate на mock_staff."""
+    monkeypatch.setattr(protocol_generate, "_load_staff", lambda: mock_staff, raising=False)
