@@ -131,3 +131,31 @@ class TestVenueChairBlock:
                     labels.append(r.text)
         assert "Место проведения: " in labels
         assert "Председатель: " in labels
+
+
+class TestAttendeesTable:
+    def test_chair_filtered_with_warning(self):
+        from docx import Document
+        import warnings as _w
+        doc = Document()
+        chair = {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о. директора"}
+        attendees = [
+            {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о. директора"},
+            {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "начальник кадров"},
+        ]
+        with _w.catch_warnings(record=True) as warn_log:
+            _w.simplefilter("always")
+            protocol_generate._make_attendees_table(doc, attendees, chair)
+        body = doc.tables[0].rows
+        names = [r.cells[0].text for r in body]
+        assert all("Алмазов" not in n for n in names)
+        assert any("Бирюзов" in n for n in names)
+        assert any("Председатель" in str(x.message) for x in warn_log)
+
+    def test_three_columns(self):
+        from docx import Document
+        doc = Document()
+        chair = {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."}
+        attendees = [{"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"}]
+        protocol_generate._make_attendees_table(doc, attendees, chair)
+        assert len(doc.tables[0].rows[0].cells) == 3

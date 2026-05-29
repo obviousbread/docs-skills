@@ -438,6 +438,40 @@ def _make_venue_chair_block(doc, venue, chair):
     _run(p, chair_text, size=14)
 
 
+def _make_attendees_table(doc, attendees, chair):
+    """Параграф-метка «Присутствовали:» + 3-col таблица: ФИО | – | должность.
+
+    Председатель удаляется из attendees с предупреждением — он не дублируется в списке.
+    """
+    label = doc.add_paragraph()
+    label.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    label.paragraph_format.first_line_indent = Cm(1.25)
+    _run(label, "Присутствовали:", bold=True, size=14)
+
+    key = (chair["lastname"].strip().lower(), chair["initials"].strip().lower())
+    filtered = []
+    for a in attendees:
+        if (a["lastname"].strip().lower(), a["initials"].strip().lower()) == key:
+            _warnings.warn(
+                f"Председатель «{chair['lastname']} {chair['initials']}» "
+                f"передан в attendees — отфильтрован.",
+                stacklevel=2,
+            )
+            continue
+        filtered.append(a)
+
+    table = doc.add_table(rows=len(filtered), cols=3)
+    _remove_table_borders(table)
+    _set_cell_margins_zero(table)
+    _autofit_contents(table)
+    for i, a in enumerate(filtered):
+        cells = table.rows[i].cells
+        _cell_text(cells[0], f"{a['lastname']} {a['initials']}")
+        _cell_text(cells[1], "–")
+        _cell_text(cells[2], a["position"])
+    return table
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
