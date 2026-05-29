@@ -549,7 +549,8 @@ class TestStaffVerification:
             create_protocol(**args)
         msg = str(exc.value)
         assert "Бирузов Б.Б." in msg
-        assert "Бирюзов" in msg  # fuzzy-кандидат
+        assert "Возможно, имелось в виду" in msg  # фраза появляется только от get_close_matches
+        assert "Бирюзов Б.Б." in msg  # fuzzy-кандидат целиком, не подстрокой
 
     def test_unknown_attendee_raises(self, tmp_path):
         import pytest as _pt

@@ -772,7 +772,7 @@ def create_protocol(
 
     org = _build_org_config()
 
-    # Сверка ФИО — Task C2 (в Phase B оставляем no-op, чтобы happy-path тесты прошли)
+    # Сверка ФИО против штатного списка (раздаёт fuzzy-подсказки при опечатке).
     _verify_fios(chair, attendees, items)
 
     doc = new_document()
