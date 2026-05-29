@@ -99,3 +99,19 @@ class TestTitleBlock:
               if p.alignment == WD_ALIGN_PARAGRAPH.CENTER and p.runs]
         assert any(r.text == "ПРОТОКОЛ" and r.bold for p in ps for r in p.runs)
         assert any(r.text == "оперативного совещания" and r.bold for p in ps for r in p.runs)
+
+
+class TestDateNumberTable:
+    def test_default_number_placeholder(self):
+        from docx import Document
+        doc = Document()
+        protocol_generate._make_date_number_table(doc, "12.05.2026", "")
+        cells = doc.tables[0].rows[0].cells
+        assert "12 мая 2026 г." in cells[0].text
+        assert cells[1].text.strip() == "№ _________"
+
+    def test_explicit_number(self):
+        from docx import Document
+        doc = Document()
+        protocol_generate._make_date_number_table(doc, "12.05.2026", "42")
+        assert doc.tables[0].rows[0].cells[1].text.strip() == "№ 42"

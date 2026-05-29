@@ -405,6 +405,22 @@ def _make_title_block(doc, subtype):
     _run(p2, subtype, bold=True, size=14)
 
 
+def _make_date_number_table(doc, doc_date, doc_number):
+    """Таблица 1×2: «12 мая 2026 г.» (слева) | «№ XXX» или «№ _________» (справа)."""
+    table = doc.add_table(rows=1, cols=2)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    _remove_table_borders(table)
+    _set_cell_margins_zero(table)
+    left_text = _format_ru_date(doc_date)
+    right_text = f"№ {doc_number}" if doc_number else "№ _________"
+    _cell_text(table.rows[0].cells[0], left_text)
+    _cell_text(table.rows[0].cells[1], right_text)
+    # Правая ячейка — выравнивание вправо
+    for p in table.rows[0].cells[1].paragraphs:
+        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    return table
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
