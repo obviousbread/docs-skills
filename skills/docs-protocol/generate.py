@@ -113,6 +113,216 @@ def _load_staff():
     return out
 
 
+# ─── Вспомогательные функции ──────────────────────────────────────────────────
+
+def _set_cell_margins_zero(table):
+    """Установить внутренние отступы ячеек таблицы в 0 со всех сторон."""
+    tbl = table._tbl
+    tblPr = tbl.tblPr
+    if tblPr is None:
+        tblPr = OxmlElement("w:tblPr")
+        tbl.insert(0, tblPr)
+    cellMar = OxmlElement("w:tblCellMar")
+    for side in ["top", "left", "bottom", "right"]:
+        el = OxmlElement(f"w:{side}")
+        el.set(qn("w:w"), "0")
+        el.set(qn("w:type"), "dxa")
+        cellMar.append(el)
+    tblPr.append(cellMar)
+
+
+def _remove_table_borders(table):
+    """Убрать все границы таблицы."""
+    tbl = table._tbl
+    tblPr = tbl.tblPr
+    if tblPr is None:
+        tblPr = OxmlElement("w:tblPr")
+        tbl.insert(0, tblPr)
+    tblBorders = OxmlElement("w:tblBorders")
+    for name in ["top", "left", "bottom", "right", "insideH", "insideV"]:
+        el = OxmlElement(f"w:{name}")
+        el.set(qn("w:val"), "none")
+        tblBorders.append(el)
+    tblPr.append(tblBorders)
+
+
+def _autofit_contents(table):
+    """Установить AutoFit Contents для таблицы.
+
+    Таблица занимает 100% ширины листа, столбцы подстраиваются под содержимое.
+    Применять ко всем содержательным таблицам (перечни, листы ознакомления и т.д.).
+    Не применять к layout-таблицам (подпись, дата/номер).
+    """
+    tbl = table._tbl
+    tblPr = tbl.tblPr
+    if tblPr is None:
+        tblPr = OxmlElement("w:tblPr")
+        tbl.insert(0, tblPr)
+    # Ширина таблицы 100% (5000 = 100% в пятидесятых долях процента)
+    existing_tblW = tblPr.find(qn("w:tblW"))
+    if existing_tblW is not None:
+        tblPr.remove(existing_tblW)
+    tblW = OxmlElement("w:tblW")
+    tblW.set(qn("w:w"), "5000")
+    tblW.set(qn("w:type"), "pct")
+    tblPr.append(tblW)
+    # tblLayout autofit
+    existing_layout = tblPr.find(qn("w:tblLayout"))
+    if existing_layout is not None:
+        tblPr.remove(existing_layout)
+    tblLayout = OxmlElement("w:tblLayout")
+    tblLayout.set(qn("w:type"), "autofit")
+    tblPr.append(tblLayout)
+    # Ширины столбцов → auto
+    for row in tbl.findall(qn("w:tr")):
+        for tc in row.findall(qn("w:tc")):
+            tcPr = tc.find(qn("w:tcPr"))
+            if tcPr is not None:
+                tcW = tcPr.find(qn("w:tcW"))
+                if tcW is not None:
+                    tcW.set(qn("w:type"), "auto")
+
+
+def _set_rows_no_break(table):
+    """Запретить разрыв строк таблицы между страницами (cantSplit)."""
+    for row in table.rows:
+        trPr = row._tr.find(qn("w:trPr"))
+        if trPr is None:
+            trPr = OxmlElement("w:trPr")
+            row._tr.insert(0, trPr)
+        cantSplit = OxmlElement("w:cantSplit")
+        cantSplit.set(qn("w:val"), "true")
+        trPr.append(cantSplit)
+
+
+def _set_table_borders(table):
+    """Установить тонкие границы для таблицы."""
+    tbl = table._tbl
+    tblPr = tbl.tblPr
+    if tblPr is None:
+        tblPr = OxmlElement("w:tblPr")
+        tbl.insert(0, tblPr)
+    tblBorders = OxmlElement("w:tblBorders")
+    for name in ["top", "left", "bottom", "right", "insideH", "insideV"]:
+        el = OxmlElement(f"w:{name}")
+        el.set(qn("w:val"), "single")
+        el.set(qn("w:sz"), "4")
+        el.set(qn("w:space"), "0")
+        el.set(qn("w:color"), "000000")
+        tblBorders.append(el)
+    tblPr.append(tblBorders)
+
+
+def _run(para, text, size=14, bold=False, font_name="Times New Roman"):
+    """Добавить run к параграфу с настройками шрифта и языком ru-RU.
+
+    Если *text* содержит ``\\n``, каждый перенос превращается в мягкий
+    разрыв строки (``<w:br/>``, аналог Shift+Enter в Word).
+    """
+    text = text.replace("—", "–")  # длинное тире -> среднее
+    _warn_slash(text)
+    parts = text.split("\n")
+    run = None
+    for i, part in enumerate(parts):
+        if i > 0:
+            br = OxmlElement("w:br")
+            run._element.append(br)
+        if part or i == 0:
+            run = para.add_run(part)
+            run.font.name = font_name
+            run.font.size = Pt(size)
+            run.bold = bold
+            rPr = run._element.rPr
+            rPr.rFonts.set(qn("w:eastAsia"), font_name)
+            lang = rPr.find(qn("w:lang"))
+            if lang is None:
+                lang = OxmlElement("w:lang")
+                rPr.append(lang)
+            lang.set(qn("w:val"), "ru-RU")
+            lang.set(qn("w:eastAsia"), "ru-RU")
+            lang.set(qn("w:bidi"), "ru-RU")
+    return run
+
+
+def _para(doc, text, size=14, bold=False, align=WD_ALIGN_PARAGRAPH.LEFT,
+          first_indent=None, space_after=None, space_before=None):
+    """Добавить параграф с настройками."""
+    p = doc.add_paragraph()
+    p.alignment = align
+    if first_indent is not None:
+        p.paragraph_format.first_line_indent = Cm(first_indent)
+    if space_after is not None:
+        p.paragraph_format.space_after = Pt(space_after)
+    if space_before is not None:
+        p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.line_spacing = 1.0
+    if text:
+        _run(p, text, size=size, bold=bold)
+    return p
+
+
+def _dash_para(doc, text, size=14, align=WD_ALIGN_PARAGRAPH.JUSTIFY):
+    """Буллет-пункт с «–» (средним тире). Отступ слева 1.25 см, без красной строки."""
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.line_spacing = 1.0
+    p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.left_indent = Cm(1.25)
+    p.paragraph_format.first_line_indent = Cm(0)
+    _run(p, f"– {text}", size=size)
+    return p
+
+
+def _cell_text(cell, text, size=14, bold=False, align=WD_ALIGN_PARAGRAPH.LEFT,
+               vertical_align="center"):
+    """Установить текст ячейки с форматированием.
+
+    vertical_align: "center" | "top" | "bottom" | None.
+    По умолчанию "center" – вертикальное выравнивание посередине.
+    """
+    cell.text = ""
+    para = cell.paragraphs[0]
+    para.alignment = align
+    para.paragraph_format.space_after = Pt(0)
+    para.paragraph_format.space_before = Pt(0)
+    para.paragraph_format.line_spacing = 1.0
+    if text:
+        _run(para, text, size=size, bold=bold)
+    if vertical_align:
+        tc = cell._tc
+        tcPr = tc.get_or_add_tcPr()
+        vAlign = OxmlElement("w:vAlign")
+        vAlign.set(qn("w:val"), vertical_align)
+        tcPr.append(vAlign)
+
+
+def _cell_lines(cell, lines, size=14, bold=False, align=WD_ALIGN_PARAGRAPH.LEFT,
+                vertical_align="center"):
+    """Установить несколько строк в ячейке как отдельные параграфы (без \\n).
+
+    lines: list[str] – каждая строка станет отдельным параграфом.
+    """
+    cell.text = ""
+    for i, line in enumerate(lines):
+        if i == 0:
+            para = cell.paragraphs[0]
+        else:
+            para = cell.add_paragraph()
+        para.alignment = align
+        para.paragraph_format.space_after = Pt(0)
+        para.paragraph_format.space_before = Pt(0)
+        para.paragraph_format.line_spacing = 1.0
+        if line:
+            _run(para, line, size=size, bold=bold)
+    if vertical_align:
+        tc = cell._tc
+        tcPr = tc.get_or_add_tcPr()
+        vAlign = OxmlElement("w:vAlign")
+        vAlign.set(qn("w:val"), vertical_align)
+        tcPr.append(vAlign)
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
