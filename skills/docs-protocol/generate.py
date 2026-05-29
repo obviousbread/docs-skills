@@ -323,6 +323,34 @@ def _cell_lines(cell, lines, size=14, bold=False, align=WD_ALIGN_PARAGRAPH.LEFT,
         tcPr.append(vAlign)
 
 
+def _build_org_config():
+    """Конфиг организации из org_details.md + output_dir_protocol."""
+    o = _load_org_details()
+
+    # 4 строки шапки: parent_org (или parent_org_short если задан),
+    # full_name, "(short_name)", пустая строка-разделитель.
+    header_lines = []
+    parent = o.get("parent_org_short") or o.get("parent_org")
+    if parent:
+        header_lines.append(parent)
+    if o.get("full_name"):
+        header_lines.append(o["full_name"])
+    if o.get("short_name"):
+        header_lines.append(f"({o['short_name']})")
+
+    return {
+        "header_lines": header_lines,
+        "address": o.get("address", ""),
+        "phone_fax": o.get("phone_fax", ""),
+        "leader_title": o.get("leader_title", ""),
+        "leader_name_nom": o.get("leader_name_nom", ""),
+        "short_name": o.get("short_name", ""),
+        "full_name": o.get("full_name", ""),
+        "staff_file": o.get("staff_file", ""),
+        "output_dir_protocol": o.get("output_dir_protocol", ""),
+    }
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")

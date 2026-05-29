@@ -48,3 +48,14 @@ class TestHelpers:
             warnings.simplefilter("always")
             protocol_generate._warn_slash("ИНН/КПП и п/п")
             assert not any("Косая черта" in str(x.message) for x in w)
+
+
+class TestOrgConfig:
+    def test_output_dir_protocol_loaded(self):
+        cfg = protocol_generate._build_org_config()
+        assert cfg["output_dir_protocol"] == "/tmp"
+
+    def test_header_lines_have_parent_and_full_name(self):
+        cfg = protocol_generate._build_org_config()
+        assert any("Тестовое агентство" in l for l in cfg["header_lines"])
+        assert any("Центр тестирования" in l for l in cfg["header_lines"])
