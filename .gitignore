@@ -9,3 +9,4 @@ __pycache__/
 .worktrees/
 node_modules/
 coverage/
+docs/superpowers/
