@@ -13,6 +13,7 @@ import shutil
 import warnings as _warnings
 import re as _re
 from datetime import date
+from difflib import get_close_matches
 
 from docx import Document
 from docx.shared import Pt, Cm, Emu
@@ -111,6 +112,38 @@ def _load_staff():
                 position = str(row[i_pos]).strip().lower()
             out.append({"lastname": lastname, "initials": initials, "position": position})
     return out
+
+
+def _verify_fios(chair, attendees, items, staff=None):
+    """Hard fail если ФИО не найден в штате. Перед fail — fuzzy top-3..5."""
+    if staff is None:
+        staff = _load_staff()
+    if not staff:
+        return  # без штата — пропускаем сверку (тесты без staff_file)
+
+    known = {(s["lastname"].lower(), s["initials"].lower()): s for s in staff}
+    known_strings = [f"{s['lastname']} {s['initials']}" for s in staff]
+
+    def check(label, lastname, initials):
+        if (lastname.lower(), initials.lower()) not in known:
+            candidates = get_close_matches(
+                f"{lastname} {initials}", known_strings, n=5, cutoff=0.6,
+            )
+            tip = ""
+            if candidates:
+                tip = " Возможно, имелось в виду: " + ", ".join(candidates) + "."
+            raise ValueError(
+                f"{label} «{lastname} {initials}» не найден в штатном списке.{tip}"
+            )
+
+    check("Председатель", chair["lastname"], chair["initials"])
+    for a in attendees:
+        check("Присутствовавший", a["lastname"], a["initials"])
+    for item in items:
+        for fio in item.get("responsible") or []:
+            parts = fio.strip().split()
+            if len(parts) >= 2:
+                check("Ответственный", parts[0], parts[1])
 
 
 # ─── Вспомогательные функции ──────────────────────────────────────────────────
@@ -740,7 +773,7 @@ def create_protocol(
     org = _build_org_config()
 
     # Сверка ФИО — Task C2 (в Phase B оставляем no-op, чтобы happy-path тесты прошли)
-    # _verify_fios(chair, attendees, items)
+    _verify_fios(chair, attendees, items)
 
     doc = new_document()
     _make_header_block(doc, org)

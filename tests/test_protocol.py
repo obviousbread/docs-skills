@@ -525,3 +525,42 @@ class TestIntegration:
         assert os.path.isfile(path)
         assert os.path.basename(path) == "Протокол оперативного совещания 12.05.2026.docx"
         os.remove(path)
+
+
+class TestStaffVerification:
+    def test_unknown_responsible_raises_with_fuzzy_candidates(self, tmp_path):
+        import pytest as _pt
+        args = {
+            "subtype": "оперативного совещания",
+            "chair": {"lastname": "Алмазов", "initials": "А.А.",
+                      "position": "и.о."},
+            "attendees": [{"lastname": "Бирюзов", "initials": "Б.Б.",
+                           "position": "кадры"}],
+            "items": [{
+                "text": "X.",
+                "responsible": ["Бирузов Б.Б."],  # опечатка
+                "deadline": None, "subitems": None,
+            }],
+            "venue": "Москва",
+            "doc_date": "12.05.2026",
+            "output_path": str(tmp_path / "p.docx"),
+        }
+        with _pt.raises(ValueError) as exc:
+            create_protocol(**args)
+        msg = str(exc.value)
+        assert "Бирузов Б.Б." in msg
+        assert "Бирюзов" in msg  # fuzzy-кандидат
+
+    def test_unknown_attendee_raises(self, tmp_path):
+        import pytest as _pt
+        args = {
+            "subtype": "оперативного совещания",
+            "chair": {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."},
+            "attendees": [{"lastname": "Несуществующий", "initials": "Н.Н.",
+                           "position": "?"}],
+            "items": [{"text": "X.", "responsible": None, "deadline": None, "subitems": None}],
+            "venue": "Москва", "doc_date": "12.05.2026",
+            "output_path": str(tmp_path / "p.docx"),
+        }
+        with _pt.raises(ValueError):
+            create_protocol(**args)
