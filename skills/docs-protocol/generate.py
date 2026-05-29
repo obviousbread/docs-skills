@@ -658,6 +658,69 @@ def _make_secretary_block(doc, secretary):
     _run(p2, fio_first, size=14)
 
 
+def _build_notify_persons(chair, attendees, items, staff):
+    """Лист ознакомления: union(attendees + responsible) − chair, дедуп, сорт А-Я."""
+    staff_by_key = {(s["lastname"].lower(), s["initials"].lower()): s for s in staff}
+    chair_key = (chair["lastname"].lower(), chair["initials"].lower())
+    keys = set()
+
+    for a in attendees:
+        k = (a["lastname"].lower(), a["initials"].lower())
+        if k != chair_key:
+            keys.add(k)
+
+    for item in items:
+        for fio in item.get("responsible") or []:
+            parts = fio.strip().split()
+            if len(parts) < 2:
+                continue
+            lastname, initials = parts[0], parts[1]
+            k = (lastname.lower(), initials.lower())
+            if k != chair_key:
+                keys.add(k)
+
+    out = []
+    for k in sorted(keys):
+        p = staff_by_key.get(k)
+        if p:
+            out.append(dict(p))
+        else:
+            # ФИО не в штате — заглушка с пустой должностью
+            out.append({"lastname": k[0].title(), "initials": k[1].upper(),
+                        "position": ""})
+    return out
+
+
+def _make_notify_sheet(doc, persons):
+    """Лист ознакомления: 3-4 строки заголовка + 4-col таблица."""
+    doc.add_page_break()
+
+    title1 = doc.add_paragraph()
+    title1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _run(title1, "Лист ознакомления", bold=True, size=14)
+
+    title2 = doc.add_paragraph()
+    title2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _run(title2, "с протоколом совещания", size=14)
+
+    table = doc.add_table(rows=len(persons) + 1, cols=4)
+    _set_table_borders(table)
+    _autofit_contents(table)
+
+    # Шапка таблицы
+    headers = ["№ п/п", "Должность", "Ф.И.О.", "Подпись"]
+    for i, h in enumerate(headers):
+        _cell_text(table.rows[0].cells[i], h, bold=True)
+
+    # Строки
+    for i, p in enumerate(persons, start=1):
+        cells = table.rows[i].cells
+        _cell_text(cells[0], str(i))
+        _cell_text(cells[1], p.get("position", ""))
+        _cell_text(cells[2], f"{p['lastname']} {p['initials']}")
+        _cell_text(cells[3], "")
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")

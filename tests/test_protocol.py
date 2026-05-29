@@ -295,3 +295,66 @@ class TestSecretaryBlock:
         texts = [p.text for p in doc.paragraphs]
         assert "Секретарь" in texts
         assert any("Д.Д. Деревьев" in t for t in texts)
+
+
+class TestNotifyPersons:
+    def test_union_attendees_and_responsible_excludes_chair(self):
+        chair = {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."}
+        attendees = [
+            {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"},
+            {"lastname": "Васильков", "initials": "В.В.", "position": "ит"},
+        ]
+        items = [
+            {"text": "X.", "responsible": ["Гранатов Г.Г."], "deadline": None, "subitems": None},
+            {"text": "Y.", "responsible": ["Бирюзов Б.Б.", "Васильков В.В."], "deadline": None, "subitems": None},
+        ]
+        staff = [
+            {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."},
+            {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"},
+            {"lastname": "Васильков", "initials": "В.В.", "position": "ит"},
+            {"lastname": "Гранатов", "initials": "Г.Г.", "position": "юрисконсульт"},
+        ]
+        result = protocol_generate._build_notify_persons(chair, attendees, items, staff)
+        names = [(p["lastname"], p["initials"]) for p in result]
+        assert ("Алмазов", "А.А.") not in names
+        assert ("Бирюзов", "Б.Б.") in names
+        assert ("Васильков", "В.В.") in names
+        assert ("Гранатов", "Г.Г.") in names
+
+    def test_dedup_and_sorted_a_to_ya(self):
+        chair = {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."}
+        attendees = [
+            {"lastname": "Жуков", "initials": "Ж.Ж.", "position": "X"},
+            {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "Y"},
+            {"lastname": "Жуков", "initials": "Ж.Ж.", "position": "X"},
+        ]
+        items = [{"text": "X.", "responsible": ["Бирюзов Б.Б."], "deadline": None, "subitems": None}]
+        staff = attendees + [chair]
+        result = protocol_generate._build_notify_persons(chair, attendees, items, staff)
+        names = [p["lastname"] for p in result]
+        assert names == sorted(names)
+        assert names.count("Жуков") == 1
+
+
+class TestNotifySheet:
+    def test_4_columns_and_headers(self):
+        from docx import Document
+        doc = Document()
+        persons = [
+            {"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"},
+            {"lastname": "Васильков", "initials": "В.В.", "position": "ит"},
+        ]
+        protocol_generate._make_notify_sheet(doc, persons)
+        t = doc.tables[-1]
+        assert len(t.rows[0].cells) == 4
+        headers = [c.text for c in t.rows[0].cells]
+        assert headers == ["№ п/п", "Должность", "Ф.И.О.", "Подпись"]
+
+    def test_rows_match_persons(self):
+        from docx import Document
+        doc = Document()
+        persons = [{"lastname": "Бирюзов", "initials": "Б.Б.", "position": "X"}]
+        protocol_generate._make_notify_sheet(doc, persons)
+        t = doc.tables[-1]
+        assert len(t.rows) == 2
+        assert "Бирюзов Б.Б." in t.rows[1].cells[2].text
