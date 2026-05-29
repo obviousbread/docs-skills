@@ -562,6 +562,63 @@ def _attach_numbering(para, num_id, ilvl=0):
     pPr.append(numPr)
 
 
+def _make_resolved_block(doc, items):
+    """Метка «РЕШИЛИ:» + цикл по items."""
+    label = doc.add_paragraph()
+    label.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    label.paragraph_format.first_line_indent = Cm(1.25)
+    _run(label, "РЕШИЛИ:", bold=True, size=14)
+
+    num_id = _setup_protocol_numbering(doc)
+    dash_id = None
+    for item in items:
+        dash_id = _make_resolved_item(doc, item, num_id, dash_id)
+
+
+def _make_resolved_item(doc, item, num_id, dash_id):
+    """Один пункт «РЕШИЛИ»: нумерованный параграф + Ответственные + Срок + подпункты."""
+    # Основной пункт с decimal-нумерацией
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    _attach_numbering(p, num_id, ilvl=0)
+    _warn_slash(item["text"])
+    _run(p, item["text"], size=14)
+
+    # Ответственные
+    if item.get("responsible"):
+        responsible_text = ", ".join(item["responsible"])
+        rp = doc.add_paragraph()
+        rp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        rp.paragraph_format.first_line_indent = Cm(1.25)
+        _run(rp, "Ответственные: ", bold=True, size=14)
+        _run(rp, responsible_text + ".", size=14)
+
+    # Срок
+    sp = doc.add_paragraph()
+    sp.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    sp.paragraph_format.first_line_indent = Cm(1.25)
+    _run(sp, "Срок: ", bold=True, size=14)
+    deadline = item.get("deadline")
+    if deadline is None:
+        pass  # «Срок: » пустой — плейсхолдер для ручного вписывания
+    elif deadline in ("постоянно", "по запросу"):
+        _run(sp, f"{deadline}.", size=14)
+    else:
+        _run(sp, f"{deadline}.", size=14)
+
+    # Подпункты — en-dash bullet
+    if item.get("subitems"):
+        if dash_id is None:
+            dash_id = _setup_dash_numbering(doc)
+        for sub in item["subitems"]:
+            sp2 = doc.add_paragraph()
+            sp2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            _attach_numbering(sp2, dash_id, ilvl=0)
+            _warn_slash(sub)
+            _run(sp2, sub, size=14)
+    return dash_id
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")

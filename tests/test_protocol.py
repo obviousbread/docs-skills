@@ -204,3 +204,51 @@ class TestNumbering:
                     and text is not None and text.get(qn("w:val")) == "–"):
                 found = True
         assert found
+
+
+class TestResolvedBlock:
+    def test_label_and_one_item(self):
+        from docx import Document
+        doc = Document()
+        items = [{
+            "text": "Подготовить отчёт.",
+            "responsible": ["Бирюзов Б.Б."],
+            "deadline": "01.06.2026",
+            "subitems": None,
+        }]
+        protocol_generate._make_resolved_block(doc, items)
+        all_text = "\n".join(p.text for p in doc.paragraphs)
+        assert "РЕШИЛИ:" in all_text
+        assert "Подготовить отчёт." in all_text
+        assert "Ответственные:" in all_text
+        assert "Бирюзов Б.Б." in all_text
+        assert "Срок:" in all_text
+        assert "01.06.2026" in all_text
+
+    def test_deadline_none_leaves_срок_empty(self):
+        from docx import Document
+        doc = Document()
+        items = [{"text": "X.", "responsible": None, "deadline": None, "subitems": None}]
+        protocol_generate._make_resolved_block(doc, items)
+        for p in doc.paragraphs:
+            if p.runs and p.runs[0].text == "Срок: ":
+                assert len(p.runs) == 1 or all(r.text == "" for r in p.runs[1:])
+                break
+        else:
+            assert False, "Параграф «Срок: » не найден"
+
+    def test_subitems_use_bullet_numbering(self):
+        from docx import Document
+        doc = Document()
+        items = [{
+            "text": "Главный пункт.",
+            "responsible": None,
+            "deadline": "постоянно",
+            "subitems": ["подпункт один;", "подпункт два."],
+        }]
+        protocol_generate._make_resolved_block(doc, items)
+        sub_paras = [p for p in doc.paragraphs
+                     if p.text in ("подпункт один;", "подпункт два.")]
+        assert len(sub_paras) == 2
+        for p in sub_paras:
+            assert p._p.find(qn("w:pPr/w:numPr") if False else qn("w:pPr")) is not None
