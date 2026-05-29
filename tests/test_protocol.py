@@ -88,3 +88,14 @@ class TestHeaderBlock:
                          if p.alignment == WD_ALIGN_PARAGRAPH.CENTER
                          and any(r.bold for r in p.runs)]
         assert len(bold_centered) >= 2  # parent_org + full_name + (short_name)
+
+
+class TestTitleBlock:
+    def test_two_centered_bold_lines(self):
+        from docx import Document
+        doc = Document()
+        protocol_generate._make_title_block(doc, "оперативного совещания")
+        ps = [p for p in doc.paragraphs
+              if p.alignment == WD_ALIGN_PARAGRAPH.CENTER and p.runs]
+        assert any(r.text == "ПРОТОКОЛ" and r.bold for p in ps for r in p.runs)
+        assert any(r.text == "оперативного совещания" and r.bold for p in ps for r in p.runs)

@@ -395,6 +395,16 @@ def _make_header_block(doc, org):
         _run(p, org["phone_fax"], italic=True, size=10)
 
 
+def _make_title_block(doc, subtype):
+    """«ПРОТОКОЛ\n<подтип>» — две строки, центр+жирный."""
+    p1 = doc.add_paragraph()
+    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _run(p1, "ПРОТОКОЛ", bold=True, size=14)
+    p2 = doc.add_paragraph()
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _run(p2, subtype, bold=True, size=14)
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
