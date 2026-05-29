@@ -252,3 +252,26 @@ class TestResolvedBlock:
         assert len(sub_paras) == 2
         for p in sub_paras:
             assert p._p.find(qn("w:pPr/w:numPr") if False else qn("w:pPr")) is not None
+
+
+class TestSignatureBlock:
+    def test_left_cell_two_lines(self):
+        from docx import Document
+        doc = Document()
+        chair = {"lastname": "Алмазов", "initials": "А.А.",
+                 "position": "И.о. генерального директора"}
+        org = {"short_name": "ТУ ЦТ", "full_name": "Тестовое учреждение"}
+        protocol_generate._make_signature_block(doc, chair, org)
+        left = doc.tables[0].rows[0].cells[0]
+        assert len(left.paragraphs) >= 2
+        assert "И.о. генерального директора" in left.paragraphs[0].text
+        assert "ТУ ЦТ" in left.paragraphs[1].text
+
+    def test_right_cell_initials_first(self):
+        from docx import Document
+        doc = Document()
+        chair = {"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."}
+        org = {"short_name": "ТУ ЦТ", "full_name": ""}
+        protocol_generate._make_signature_block(doc, chair, org)
+        right = doc.tables[0].rows[0].cells[1].text.strip()
+        assert right == "А.А. Алмазов"

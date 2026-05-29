@@ -619,6 +619,29 @@ def _make_resolved_item(doc, item, num_id, dash_id):
     return dash_id
 
 
+def _make_signature_block(doc, chair, org):
+    """Подпись: 1×2 таблица. Левая ячейка — должность + организация с новой строки.
+
+    Канон: «И.о. генерального директора\nФГБУ «Научный центр»»
+    Правая ячейка — «И.О. Фамилия» (председатель).
+    """
+    table = doc.add_table(rows=1, cols=2)
+    _remove_table_borders(table)
+    _set_cell_margins_zero(table)
+    left_cell = table.rows[0].cells[0]
+    right_cell = table.rows[0].cells[1]
+
+    # Левая ячейка — должность председателя + организация (новая строка)
+    org_name = org.get("short_name") or org.get("full_name") or ""
+    _cell_lines(left_cell, [chair["position"], org_name])
+
+    # Правая — «И.О. Фамилия»
+    signer = _format_fio_initials_first(f"{chair['lastname']} {chair['initials']}")
+    _cell_text(right_cell, signer)
+    for p in right_cell.paragraphs:
+        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
