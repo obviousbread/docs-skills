@@ -4,6 +4,7 @@ import os
 import warnings
 
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 
 from conftest import protocol_generate
 
@@ -159,3 +160,47 @@ class TestAttendeesTable:
         attendees = [{"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"}]
         protocol_generate._make_attendees_table(doc, attendees, chair)
         assert len(doc.tables[0].rows[0].cells) == 3
+
+
+class TestNumbering:
+    def test_protocol_numbering_returns_num_id(self):
+        from docx import Document
+        doc = Document()
+        num_id = protocol_generate._setup_protocol_numbering(doc)
+        assert isinstance(num_id, int) and num_id > 0
+
+    def test_protocol_numbering_uses_decimal(self):
+        from docx import Document
+        doc = Document()
+        protocol_generate._setup_protocol_numbering(doc)
+        numbering = doc.part.numbering_part.element
+        abs_nums = numbering.findall(qn("w:abstractNum"))
+        found = False
+        for an in abs_nums:
+            lvl = an.find(qn("w:lvl"))
+            if lvl is None:
+                continue
+            fmt = lvl.find(qn("w:numFmt"))
+            text = lvl.find(qn("w:lvlText"))
+            if (fmt is not None and fmt.get(qn("w:val")) == "decimal"
+                    and text is not None and text.get(qn("w:val")) == "%1."):
+                found = True
+        assert found
+
+    def test_dash_numbering_uses_bullet_endash(self):
+        from docx import Document
+        doc = Document()
+        protocol_generate._setup_dash_numbering(doc)
+        numbering = doc.part.numbering_part.element
+        abs_nums = numbering.findall(qn("w:abstractNum"))
+        found = False
+        for an in abs_nums:
+            lvl = an.find(qn("w:lvl"))
+            if lvl is None:
+                continue
+            fmt = lvl.find(qn("w:numFmt"))
+            text = lvl.find(qn("w:lvlText"))
+            if (fmt is not None and fmt.get(qn("w:val")) == "bullet"
+                    and text is not None and text.get(qn("w:val")) == "–"):
+                found = True
+        assert found

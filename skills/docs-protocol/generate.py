@@ -472,6 +472,96 @@ def _make_attendees_table(doc, attendees, chair):
     return table
 
 
+def _next_num_id(doc):
+    """Вернуть следующий свободный numId в numbering.xml."""
+    try:
+        numbering = doc.part.numbering_part.element
+    except (AttributeError, ValueError):
+        # Если numbering_part не создан — создать через временный список
+        tmp = doc.add_paragraph(style="List Number")
+        tmp._p.getparent().remove(tmp._p)
+        numbering = doc.part.numbering_part.element
+    nums = numbering.findall(qn("w:num"))
+    existing = [int(n.get(qn("w:numId"))) for n in nums]
+    return (max(existing) + 1) if existing else 1
+
+
+def _setup_protocol_numbering(doc):
+    """Зарегистрировать decimal-нумерацию «%1.» с отступами left=1069 EMU, hanging=360.
+
+    Возвращает numId (динамический, не хардкод).
+    """
+    num_id = _next_num_id(doc)
+    numbering = doc.part.numbering_part.element
+
+    # Найти следующий свободный abstractNumId
+    abs_nums = numbering.findall(qn("w:abstractNum"))
+    abs_id = (max(int(n.get(qn("w:abstractNumId"))) for n in abs_nums) + 1) if abs_nums else 0
+
+    from docx.oxml import parse_xml
+    abs_xml = (
+        f'<w:abstractNum xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:abstractNumId="{abs_id}">'
+        '<w:lvl w:ilvl="0">'
+        '<w:start w:val="1"/>'
+        '<w:numFmt w:val="decimal"/>'
+        '<w:lvlText w:val="%1."/>'
+        '<w:lvlJc w:val="left"/>'
+        '<w:pPr><w:ind w:left="1069" w:hanging="360"/></w:pPr>'
+        '</w:lvl>'
+        '</w:abstractNum>'
+    )
+    numbering.append(parse_xml(abs_xml))
+
+    num_xml = (
+        f'<w:num xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:numId="{num_id}">'
+        f'<w:abstractNumId w:val="{abs_id}"/>'
+        '</w:num>'
+    )
+    numbering.append(parse_xml(num_xml))
+    return num_id
+
+
+def _setup_dash_numbering(doc):
+    """En-dash bullet для подпунктов. Возвращает numId."""
+    num_id = _next_num_id(doc)
+    numbering = doc.part.numbering_part.element
+    abs_nums = numbering.findall(qn("w:abstractNum"))
+    abs_id = (max(int(n.get(qn("w:abstractNumId"))) for n in abs_nums) + 1) if abs_nums else 0
+    from docx.oxml import parse_xml
+    abs_xml = (
+        f'<w:abstractNum xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:abstractNumId="{abs_id}">'
+        '<w:lvl w:ilvl="0">'
+        '<w:start w:val="1"/>'
+        '<w:numFmt w:val="bullet"/>'
+        '<w:lvlText w:val="–"/>'
+        '<w:lvlJc w:val="left"/>'
+        '<w:pPr><w:ind w:left="1429" w:hanging="360"/></w:pPr>'
+        '</w:lvl>'
+        '</w:abstractNum>'
+    )
+    numbering.append(parse_xml(abs_xml))
+    num_xml = (
+        f'<w:num xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:numId="{num_id}">'
+        f'<w:abstractNumId w:val="{abs_id}"/>'
+        '</w:num>'
+    )
+    numbering.append(parse_xml(num_xml))
+    return num_id
+
+
+def _attach_numbering(para, num_id, ilvl=0):
+    """Присоединить numPr к параграфу."""
+    pPr = para._p.get_or_add_pPr()
+    numPr = OxmlElement("w:numPr")
+    ilvl_el = OxmlElement("w:ilvl")
+    ilvl_el.set(qn("w:val"), str(ilvl))
+    num_el = OxmlElement("w:numId")
+    num_el.set(qn("w:val"), str(num_id))
+    numPr.append(ilvl_el)
+    numPr.append(num_el)
+    pPr.append(numPr)
+
+
 def create_protocol(*args, **kwargs):
     """Заглушка — реализация в Task B15."""
     raise NotImplementedError("create_protocol будет реализован в Task B15")
