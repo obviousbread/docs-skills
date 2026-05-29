@@ -624,3 +624,25 @@ class TestEditProtocol:
         # В копии есть w:ins или w:del
         body_xml = doc.element.body.xml
         assert "w:ins" in body_xml or "w:del" in body_xml
+
+    def test_edit_protocol_warns_on_unmatched_find(self, tmp_path):
+        # Создать исходник через create_protocol
+        src = create_protocol(
+            subtype="оперативного совещания",
+            chair={"lastname": "Алмазов", "initials": "А.А.", "position": "и.о."},
+            attendees=[{"lastname": "Бирюзов", "initials": "Б.Б.", "position": "кадры"}],
+            items=[{"text": "Подготовить отчёт.", "responsible": ["Бирюзов Б.Б."],
+                    "deadline": "01.06.2026", "subitems": None}],
+            venue="Москва", doc_date="12.05.2026",
+            output_path=str(tmp_path / "Протокол оперативного совещания 12.05.2026.docx"),
+        )
+
+        # find отсутствует в документе — должно быть предупреждение
+        edits = [{"find": "Текста с такой формулировкой в документе нет.",
+                  "replace": "Не важно."}]
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            dst = protocol_generate.edit_protocol(src, edits)
+
+        assert any("не найден" in str(w.message) for w in caught)
+        assert os.path.isfile(dst)

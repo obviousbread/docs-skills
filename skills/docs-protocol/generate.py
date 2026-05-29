@@ -820,6 +820,10 @@ def edit_protocol(src_path, edits):
 
     Returns:
         Путь к копии с track changes.
+
+    Правка, чей текст «find» не найден ни в одном параграфе, пропускается с
+    предупреждением. Аннотируется только ПЕРВЫЙ совпавший параграф каждой
+    правки (добавление в конец параграфа, не inline-замена).
     """
     from docx.oxml import parse_xml
     from xml.sax.saxutils import escape
@@ -848,8 +852,12 @@ def edit_protocol(src_path, edits):
     for edit in edits:
         find_text = edit["find"]
         replace_text = edit["replace"]
+        matched = False
         for p in doc.paragraphs:
             if find_text in p.text:
+                matched = True
+                # Ведущий пробел — намеренный разделитель для MVP «добавление
+                # в конец параграфа»; не убирать при дальнейшей правке.
                 ins = parse_xml(
                     f'<w:ins xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
                     f'w:id="{rev_id}" w:author="docs-protocol" w:date="2026-05-29T00:00:00Z">'
@@ -858,6 +866,8 @@ def edit_protocol(src_path, edits):
                 )
                 p._p.append(ins)
                 rev_id += 1
+                # Ведущий пробел — намеренный разделитель для MVP «добавление
+                # в конец параграфа»; не убирать при дальнейшей правке.
                 deletion = parse_xml(
                     f'<w:del xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
                     f'w:id="{rev_id}" w:author="docs-protocol" w:date="2026-05-29T00:00:00Z">'
@@ -867,6 +877,12 @@ def edit_protocol(src_path, edits):
                 p._p.append(deletion)
                 rev_id += 1
                 break
+        if not matched:
+            _warnings.warn(
+                f"Текст для правки не найден ни в одном параграфе: «{find_text}». "
+                f"Правка пропущена.",
+                stacklevel=2,
+            )
 
     doc.save(dst_path)
     return dst_path
