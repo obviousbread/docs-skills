@@ -208,4 +208,4 @@ Architectural invariants. Violating any of these breaks distribution.
 
 When the user corrects your approach, append a one-line rule here before ending the session. Write it concretely ("Always use X for Y"), never abstractly ("be careful with Y"). If an existing line already covers the correction, tighten it instead of adding a new one. Remove lines when the underlying issue goes away (model upgrades, refactors, process changes).
 
-- (empty)
+- Keep the runtime depersonalized: never hardcode personal/org data (ФИО, document author, org requisites, track-changes revision author) in a skill or runtime. Read all such values from the `~/.docs-plugin/org_details.md` config; if a value is absent, use a depersonalized default. New config key for review mode: `revision_author` (author shown on tracked revisions).

@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.3.0
+
+### docs-ord
+
+- Added **review mode**: when an existing order/directive (`.doc`/`.docx`) is supplied with a review/fix request, the skill reviews the document instead of creating one. Mode is detected up front (creation vs review) and announced in `SKILL.md`.
+- Two-loop review: a primary **holistic** loop (read the full rule corpus and review as if rebuilding the document from scratch) plus a deterministic **conformance** loop against the formatting invariants of `generate.py`. The checklist is an explicit floor, not a ceiling.
+- New reference `references/review-checklist.md`: structural-layer invariants (page margins, requisites/title/signature/approval as tables, section vs page breaks, TNR numbering font, acquaintance-sheet columns, content-table borders/autofit/cantSplit) and text-layer rules (quotes, dashes, slashes, DD.MM.YYYY dates, semicolon-enumeration → list, NPA requisite format, alias consistency), with classification into text-layer vs structural-layer fixes.
+- Remediation policy: text-layer fixes → Word track-changes in a `<name>_правки.docx` copy (original untouched); structural fixes (cannot be expressed as track-changes) → rebuild via `generate.py` into a conformant `.docx`. The skill offers three variants — text-only, structural-only, or a combined rebuild that applies everything at once (recommended).
+- Track-changes revision author is read from the `revision_author` config key (generic default when absent), not hardcoded in the runtime.
+
+### docs-init
+
+- Block 3 now also asks for `revision_author` (track-changes author used in docs-ord review mode).
+
+### config
+
+- `references/org_details.md.example`: added `revision_author` key.
+
 ## 0.2.0
 
 ### docs-protocol
