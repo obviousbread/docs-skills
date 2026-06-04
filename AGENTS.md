@@ -187,6 +187,7 @@ Architectural invariants. Violating any of these breaks distribution.
 
 ### Releases
 
+0. **Personal-data gate (blocking).** Before any release commit, tag, or publish, scan the working tree and the staged diff for personal or identifying data (real names, organization names, addresses, contact details, requisites, anything tracing to the author or their workplace). If anything is found, stop and depersonalize first. A commit, release, or publish must not proceed while identifying data is present anywhere in the tracked content.
 1. Update `package.json` version.
 2. Update `CHANGELOG.md`.
 3. Run `npm test` and `npm pack --dry-run --json` to confirm tests pass and the tarball contains all runtime-critical files.
@@ -199,6 +200,7 @@ Architectural invariants. Violating any of these breaks distribution.
 - Do not commit `~/.docs-plugin/` (persistent user data: organization details, examples, scripts, logs, installer runtime).
 - Do not commit output `.docx` files.
 - Do not widen installer cleanup to all `docs-*` directories by prefix alone. The installer owns only skill directories explicitly marked by its metadata and known legacy migration targets.
+- **No real identifying data in committed content.** Everything that ships (skills, references, examples, tests, fixtures, sample documents, docstrings, changelog) must use only generic, clearly fictional placeholders. Never name a real organization, person, address, contact detail, or institutional requisite — including the author's own employer or anything that could identify the author. Real values live only in `~/.docs-plugin/` and are read at runtime; if a value is absent, use a depersonalized default.
 
 ---
 
@@ -208,4 +210,4 @@ Architectural invariants. Violating any of these breaks distribution.
 
 When the user corrects your approach, append a one-line rule here before ending the session. Write it concretely ("Always use X for Y"), never abstractly ("be careful with Y"). If an existing line already covers the correction, tighten it instead of adding a new one. Remove lines when the underlying issue goes away (model upgrades, refactors, process changes).
 
-- Keep the runtime depersonalized: never hardcode personal/org data (ФИО, document author, org requisites, track-changes revision author) in a skill or runtime. Read all such values from the `~/.docs-plugin/org_details.md` config; if a value is absent, use a depersonalized default. New config key for review mode: `revision_author` (author shown on tracked revisions).
+- Keep the runtime depersonalized: never hardcode personal/org data (ФИО, document author, org requisites, track-changes revision author) in a skill or runtime. Read all such values from the `~/.docs-plugin/org_details.md` config; if a value is absent, use a depersonalized default. Before every commit and release, run the personal-data gate (see Releases step 0) and block on any real identifying data. New config key for review mode: `revision_author` (author shown on tracked revisions).
