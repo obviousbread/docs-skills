@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.3.1
+
+### chore
+
+- Added a pre-release content-review step (Releases step 0) and a content-hygiene rule to the Forbidden section of `AGENTS.md`.
+- Removed all references to the federal medical system **профильная ИС** from skill references (`docs-di/references/knowledge_base.md`, `docs-di/references/quality-checklist.md`), replaced with the generic «профильные информационные системы».
+- Cleaned up the `docs-di` smoke-test sample data and removed stray empty string literals in `generate.py`.
+- Reworded the `parent_org_short` placeholder comment in `references/org_details.md.example` to a generic example.
+- Fixed whitespace alignment in a `docs-protocol` signature example.
+
+### packaging
+
+- Updated `repository.url` in `package.json` to `github.com/obviousbread/docs-skills` (repository rename).
+
 ## 0.3.0
 
 ### docs-ord
