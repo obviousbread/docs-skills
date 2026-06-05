@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.3.3
+
+### packaging
+
+- Switched the published package from the private GitHub Packages registry to the public npmjs.org registry. `publishConfig` now targets `registry.npmjs.org` with `access: public`, so `npx @obviousbread/docs@latest` resolves for unauthenticated users.
+- Stopped tracking `.npmrc` (now gitignored); registry configuration lives solely in `publishConfig`.
+
+### chore
+
+- Depersonalized the LICENSE copyright holder.
+
 ## 0.3.2
 
 ### chore

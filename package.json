@@ -1,6 +1,6 @@
 {
   "name": "@obviousbread/docs",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Portable agent skills for generating documents (.docx).",
   "license": "MIT",
   "bin": {
@@ -38,6 +38,7 @@
     "url": "git+https://github.com/obviousbread/docs-skills.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   }
 }
