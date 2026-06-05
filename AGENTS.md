@@ -174,7 +174,6 @@ Prefer single-file or single-test runs during iteration. Full suites are for the
 - **Import style (Python)**: generators import shared code from local `../../lib` first, then `~/.docs-plugin/runtime/lib` as an installed fallback.
 - **Skill inventory**: when adding, removing, or renaming a portable skill, update the installer skill inventory in `bin/install.js`.
 - **Runtime payload**: when adding new runtime asset types, update `package.json.files` so `npx` installs the complete payload.
-- **Commits**: Conventional Commits, English, lowercase imperative – `type(scope): summary`. Common types: `feat`, `fix`, `docs`, `refactor`, `chore`.
 
 ### Runtime Shape
 
@@ -185,15 +184,27 @@ Architectural invariants. Violating any of these breaks distribution.
 - No Claude/Codex/Gemini harness-specific manifests are maintained.
 - Installer copies runtime files into `~/.docs-plugin/runtime` and copies `docs-*` skill folders into native harness locations.
 
+### Versioning & Git
+
+- `main` is stable and always releasable. Do feature work on topic branches: `feat/<short-name>`, `fix/<short-name>`, `refactor/<short-name>`, `chore/<short-name>`, `docs/<short-name>`.
+- Solo no-ff workflow: branch → implement → verify → `git merge --no-ff` into `main` → delete the topic branch. `--no-ff` is mandatory so each feature stays one visible unit in history.
+- Commit atomically: one logical change per commit, each with a short imperative summary. Typical feature work is 3–10 atomic commits; split larger work into multiple branches.
+- Conventional Commits, English, lowercase imperative: `type(scope): summary`. Types: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`, `test`. Scope required except for `chore` and `docs`.
+- Pre-1.0: bump the patch for all release work unless a minor or major is explicitly decided.
+- Keep `CHANGELOG.md` in Keep a Changelog 1.1.0 style.
+- Release commit on `main`: `chore(release): cut X.Y.Z`. Annotated tag matching `package.json`: `git tag -a vX.Y.Z -m "X.Y.Z"`.
+- **Never merge a topic branch, push, or publish without explicit user confirmation.**
+
 ### Releases
 
 0. **Personal-data gate (blocking).** Before any release commit, tag, or publish, scan the working tree and the staged diff for personal or identifying data (real names, organization names, addresses, contact details, requisites, anything tracing to the author or their workplace). If anything is found, stop and depersonalize first. A commit, release, or publish must not proceed while identifying data is present anywhere in the tracked content.
 1. Update `package.json` version.
 2. Update `CHANGELOG.md`.
 3. Run `npm test` and `npm pack --dry-run --json` to confirm tests pass and the tarball contains all runtime-critical files.
-4. Publish a new package version before creating a remote release, so `npx @obviousbread/docs@latest` can resolve the shipped installer.
-5. Create the git tag with the same version as `package.json`.
-6. Create the remote release paired with that same tag and package version.
+4. **Print the full release contents to the chat** — the version, the `CHANGELOG.md` entry, and the `npm pack --dry-run` file list — and wait for explicit user confirmation. Do not publish, tag, push, or create a release before the user confirms.
+5. Publish the package version before creating a remote release, so `npx @obviousbread/docs@latest` can resolve the shipped installer.
+6. Create the annotated git tag with the same version as `package.json` (`git tag -a vX.Y.Z -m "X.Y.Z"`).
+7. Create the remote release paired with that tag. The GitHub release title is exactly the version number `X.Y.Z` — no description or feature text (e.g. `0.3.2`, not `0.3.2 — added review mode`). Use the `CHANGELOG.md` entry as the release body.
 
 ### Forbidden
 
