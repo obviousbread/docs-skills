@@ -12,6 +12,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch: {}   # manual run — used to safely verify trusted publishing (see the verify step)
 
 permissions:
   id-token: write   # required: lets the job mint an OIDC token for npm
@@ -28,9 +29,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false               # never cache in release builds
       - run: npm install -g npm@latest               # trusted publishing needs npm >= 11.5.1
-      # Publish only if this version is not already on npm. Keeps the run green
-      # for the bootstrap tag (published manually) and safe to re-run.
+
+      # Release path (tag push): publish, but skip if this version is already on
+      # npm — keeps the run green for the bootstrap tag and safe to re-run.
       - name: Publish to npm if version is new
+        if: github.event_name == 'push'
         run: |
           name=$(node -p "require('./package.json').name")
           version=$(node -p "require('./package.json').version")
@@ -38,4 +41,31 @@ jobs:
             echo "$name@$version already published — skipping."
           else
             npm publish --provenance
+          fi
+
+      # Verify path (manual dispatch from main only): attempt to publish the current
+      # version, which a SAFETY GATE first proves is already live. npm authenticates
+      # the OIDC token before the registry rejects the duplicate version, so reaching
+      # that rejection proves trusted publishing is wired correctly. Nothing can go
+      # live: the gate aborts unless the version already exists, and published
+      # versions are immutable.
+      - name: Verify trusted publishing (safe no-op publish)
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          # Safety gate: refuse to run unless this exact version is ALREADY on npm.
+          # Without this, dispatching from a branch whose package.json holds an
+          # unpublished version would publish it for real.
+          if ! npm view "$name@$version" version > /dev/null 2>&1; then
+            echo "::error::Refusing to verify: $name@$version is not yet published. Run this only against a version already live on npm."
+            exit 1
+          fi
+          out=$(npm publish --provenance 2>&1) || true
+          echo "$out"
+          if echo "$out" | grep -qiE "cannot publish over|previously published|already published"; then
+            echo "::notice::OIDC trusted publishing WORKS — auth succeeded; registry rejected only the duplicate version."
+          else
+            echo "::error::OIDC did not authenticate as expected — trusted publisher likely misconfigured."
+            exit 1
           fi
