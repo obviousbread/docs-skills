@@ -183,6 +183,7 @@ Architectural invariants. Violating any of these breaks distribution.
 - `bin/install.js` is the only supported distribution path.
 - No Claude/Codex/Gemini harness-specific manifests are maintained.
 - Installer copies runtime files into `~/.docs-plugin/runtime` and copies `docs-*` skill folders into native harness locations.
+- npm publishing uses trusted publishing (OIDC) from `.github/workflows/publish.yml`, triggered on `v*` tags — no long-lived npm token. The npmjs trusted publisher is configured for repo `obviousbread/docs-skills` + workflow `publish.yml`.
 
 ### Versioning & Git
 
@@ -202,8 +203,8 @@ Architectural invariants. Violating any of these breaks distribution.
 2. Update `CHANGELOG.md`.
 3. Run `npm test` and `npm pack --dry-run --json` to confirm tests pass and the tarball contains all runtime-critical files.
 4. **Print the full release contents to the chat** — the version, the `CHANGELOG.md` entry, and the `npm pack --dry-run` file list — and wait for explicit user confirmation. Do not publish, tag, push, or create a release before the user confirms.
-5. Publish the package version before creating a remote release, so `npx @obviousbread/docs@latest` can resolve the shipped installer.
-6. Create the annotated git tag with the same version as `package.json` (`git tag -a vX.Y.Z -m "X.Y.Z"`).
+5. After confirmation, create the annotated git tag matching `package.json` (`git tag -a vX.Y.Z -m "X.Y.Z"`), then push `main` and the tag (`git push origin main --follow-tags`).
+6. The tag push triggers `.github/workflows/publish.yml`, which publishes to npm via trusted publishing (OIDC) — no local `npm publish`, no npm token. Wait for the workflow to succeed, then confirm the version resolves (`npm view @obviousbread/docs version`).
 7. Create the remote release paired with that tag. The GitHub release title is exactly the version number `X.Y.Z` — no description or feature text (e.g. `0.3.2`, not `0.3.2 — added review mode`). Use the `CHANGELOG.md` entry as the release body.
 
 ### Forbidden

@@ -8,6 +8,7 @@
 
 - Switched the published package from the private GitHub Packages registry to the public npmjs.org registry. `publishConfig` now targets `registry.npmjs.org` with `access: public`, so `npx @obviousbread/docs@latest` resolves for unauthenticated users.
 - Stopped tracking `.npmrc` (now gitignored); registry configuration lives solely in `publishConfig`.
+- Added a GitHub Actions trusted-publishing workflow (`.github/workflows/publish.yml`) that publishes to npm via OIDC on `v*` tags — short-lived credentials with provenance, no long-lived npm token.
 
 ### chore
 

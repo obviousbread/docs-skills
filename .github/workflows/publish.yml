@@ -1,0 +1,41 @@
+name: Publish to npm
+
+# Publishes @obviousbread/docs to npm via trusted publishing (OIDC) when a
+# vX.Y.Z tag is pushed. No long-lived npm token: the job mints a short-lived
+# OIDC credential that npm accepts because this repo + workflow filename are
+# registered as a trusted publisher on npmjs.com.
+#
+# Tests are run locally before tagging (see the release process in AGENTS.md),
+# so this workflow only builds the tarball and publishes it.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write   # required: lets the job mint an OIDC token for npm
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'                         # trusted publishing needs Node >= 22.14.0
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false               # never cache in release builds
+      - run: npm install -g npm@latest               # trusted publishing needs npm >= 11.5.1
+      # Publish only if this version is not already on npm. Keeps the run green
+      # for the bootstrap tag (published manually) and safe to re-run.
+      - name: Publish to npm if version is new
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version > /dev/null 2>&1; then
+            echo "$name@$version already published — skipping."
+          else
+            npm publish --provenance
+          fi
