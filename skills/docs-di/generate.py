@@ -25,7 +25,6 @@ import sys as _sys
 import warnings
 from datetime import date
 
-from docx import Document
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
@@ -42,22 +41,7 @@ for _lib_path in (
     if os.path.isdir(_lib_path) and _lib_path not in _sys.path:
         _sys.path.insert(0, _lib_path)
 from db import log_generation, ORG_DETAILS_PATH
-
-
-# ─── Метаданные документа ──────────────────────────────────────────────────────
-
-def _new_document():
-    """Создать Document и очистить служебные метаданные python-docx."""
-    doc = Document()
-    cp = doc.core_properties
-    cp.author = ""
-    cp.last_modified_by = ""
-    cp.comments = ""
-    cp.title = ""
-    cp.subject = ""
-    cp.keywords = ""
-    cp.category = ""
-    return doc
+from docx_meta import new_document
 
 
 # ─── Валидация текста ──────────────────────────────────────────────────────────
@@ -713,7 +697,7 @@ def create_di(
     output_path = os.path.expanduser(output_path)
     final_path = _resolve_output_path(output_path)
 
-    doc = _new_document()
+    doc = new_document()
 
     section = doc.sections[0]
     section.page_width = Cm(21)

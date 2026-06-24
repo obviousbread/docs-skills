@@ -9,6 +9,14 @@ description: "Initialize or update docs organization settings. Checks if org_det
 >
 > **Codex:** use native Codex file tools. Read and write `~/.docs-plugin/org_details.md` explicitly.
 
+## 0. Карта references
+
+| Файл | Что содержит | Когда читать |
+|------|-------------|-------------|
+| `~/.docs-plugin/runtime/references/org_details.md.example` | Полный шаблон `org_details.md` со всеми поддерживаемыми полями | При первом запуске перед вопросами; если runtime еще не установлен, используй `references/org_details.md.example` из текущего репозитория |
+| `~/.docs-plugin/org_details.md` | Текущие реквизиты организации | В начале работы и при обновлении реквизитов |
+| `~/.docs-plugin/org_notes.md` | Свободные заметки об организации | Только если пользователь просит добавить или обновить заметки |
+
 ## Алгоритм
 
 ### 1. Проверить наличие org_details.md
