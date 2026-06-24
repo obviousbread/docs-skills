@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### fix
+
+- Added a shared fast WebSearch/WebFetch verification protocol and wired every WebSearch instruction to it, replacing unbounded legal-source reading with capped search/fetch rules, source priority, stop criteria, and structured evidence fields.
+- Aligned `docs-di` with the shared `docx_meta.new_document()` metadata sanitizer used by the other generators.
+
+### test
+
+- Added prompt-quality, installer payload, and generated `.docx` invariant guardrails for search protocol coverage, shared metadata use, readable content, and portable runtime references.
+
 ## 0.3.4
 
 ### fix

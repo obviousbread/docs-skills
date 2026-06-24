@@ -17,6 +17,7 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 | Файл | Что содержит | Критичные нюансы |
 |------|-------------|------------------|
 | `letter-patterns.md` | Паттерны 10+ типов писем: открывающие фразы, структура, речевые обороты | Тип письма определяет открывающую фразу. Не использовать фразы одного типа в другом |
+| `~/.docs-plugin/runtime/references/web-search.md` | Быстрый протокол WebSearch/WebFetch: лимиты запросов, приоритет источников, stop rules, JSON evidence | Читать перед `recipient-verifier`, `npa-verifier`, `research-subagent`; в dev source см. `references/web-search.md` |
 | `~/.docs-plugin/org_details.md` | Реквизиты, подписант, исполнитель | Должность подписанта берется ТОЛЬКО отсюда |
 
 ### Читать по ситуации
@@ -41,7 +42,7 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 >
 > **Codex:** `~/.docs-plugin/org_details.md` не подгружается автоматически. Прочитай файл явно до любых других шагов. Используй native Codex tools. Если файла нет — сообщи пользователю и предложи запустить docs-init.
 
-Прочитать `letter-patterns.md`, `~/.docs-plugin/org_details.md` - **до** формирования текста и запуска субагентов.
+Прочитать `letter-patterns.md`, `~/.docs-plugin/runtime/references/web-search.md`, `~/.docs-plugin/org_details.md` - **до** формирования текста и запуска субагентов.
 
 ### Шаг 1. Понять задачу
 
@@ -62,36 +63,36 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 Когда: данные из скана/PDF, только инициалы адресата, незнакомая организация, нестандартная или устаревшая должность.
 
 ```
-Проверь данные через WebSearch (официальные сайты организаций):
+Проверь данные через WebSearch по протоколу web-search.md (официальные сайты организаций):
 - Организация: <название> - уточни точное официальное наименование и сокращение
 - Руководитель: <фамилия, инициалы> - уточни полное имя-отчество и актуальность должности
 - Должность: <должность> - проверь актуальность (генеральный директор, и.о. и т.п.)
-Верни: {"org_full": "...", "org_short": "...", "fio_full": "...", "position": "...", "source_url": "...", "corrections": ["исправление 1", "..."]}
+Верни: {"org_full": "...", "org_short": "...", "fio_full": "...", "position": "...", "status": "подтвержден"|"не найден"|"конфликт", "source_url": "...", "checked_at": "...", "confidence": "high"|"medium"|"low", "corrections": ["исправление 1", "..."]}
 Если данные подтверждены без изменений - верни corrections: [].
 ```
 
 > **Claude Code:** запусти субагентом как описано выше.
 >
-> **Gemini CLI:** субагент недоступен. Выполни inline: WebSearch по организации и руководителю на официальных сайтах. Верни те же поля: org_full, org_short, fio_full, position, source_url, corrections.
+> **Gemini CLI:** субагент недоступен. Выполни inline по `web-search.md`: WebSearch по организации и руководителю на официальных сайтах. Верни те же поля.
 >
-> **Codex:** если в текущей сессии доступен agent/subagent tool, можно делегировать проверку. Иначе сообщи пользователю `subagents unavailable in this session, continuing inline` и выполни ту же inline-проверку.
+> **Codex:** если в текущей сессии доступен agent/subagent tool, можно делегировать проверку. Иначе сообщи пользователю `subagents unavailable in this session, continuing inline` и выполни ту же inline-проверку по `web-search.md`.
 
 **Субагент `npa-verifier`** - стандартная модель.
 Когда: письмо ссылается на НПА, нужно сформулировать позицию на основе нормативки.
 
 ```
 Для каждого НПА из списка: <список НПА или описание темы>
-Проверь через WebSearch реквизиты и актуальность. Источники: consultant.ru, garant.ru, pravo.gov.ru.
-Для каждого НПА верни: {"npa_key": "...", "official_name": "...", "date": "...", "number": "...", "status": "актуален"|"отменен"|"изменен", "source_url": "...", "notes": "..."}
+Проверь через WebSearch по протоколу web-search.md реквизиты и актуальность. Источники: publication.pravo.gov.ru, официальные сайты ведомств, consultant.ru, garant.ru.
+Для каждого НПА верни: {"npa_key": "...", "official_name": "...", "date": "...", "number": "...", "status": "актуален"|"отменен"|"изменен"|"не найден", "source_url": "...", "checked_at": "...", "confidence": "high"|"medium"|"low", "notes": "..."}
 Если тема указана без конкретных НПА - подбери 2-4 релевантных и верни их реквизиты.
 Не придумывай реквизиты. Вернуть только JSON-массив.
 ```
 
 > **Claude Code:** запусти субагентом как описано выше.
 >
-> **Gemini CLI:** субагент недоступен. Выполни inline: WebSearch по каждому НПА на consultant.ru / garant.ru / pravo.gov.ru. Примени те же правила фильтрации: кодексы, Конституция, ГОСТы, СанПиНы — без реквизитов «от ... №...».
+> **Gemini CLI:** субагент недоступен. Выполни inline по `web-search.md`: WebSearch по каждому НПА на publication.pravo.gov.ru / официальных сайтах ведомств / consultant.ru / garant.ru. Примени те же правила фильтрации: кодексы, Конституция, ГОСТы, СанПиНы — без реквизитов «от ... №...».
 >
-> **Codex:** если в текущей сессии доступен agent/subagent tool, можно делегировать проверку. Иначе сообщи пользователю `subagents unavailable in this session, continuing inline` и выполни ту же inline-проверку.
+> **Codex:** если в текущей сессии доступен agent/subagent tool, можно делегировать проверку. Иначе сообщи пользователю `subagents unavailable in this session, continuing inline` и выполни ту же inline-проверку по `web-search.md`.
 
 **Субагент `staff-verifier`** - стандартная модель.
 Когда: в тексте письма упоминаются сотрудники организации (список участников, направляемые сотрудники, нестандартный подписант).
@@ -111,16 +112,16 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 
 ```
 Тема: <тема из контекста письма>
-Задача: собрать актуальные данные, факты или нормативную информацию для обоснования позиции в письме.
+Задача: собрать актуальные данные, факты или нормативную информацию для обоснования позиции в письме по протоколу web-search.md.
 Источники: официальные сайты ведомств, правовые базы, профильные ресурсы.
 Верни: {"summary": "краткий синтез для включения в письмо", "sources": ["url1", "url2", ...]}
 ```
 
 > **Claude Code:** запусти субагентом как описано выше.
 >
-> **Gemini CLI:** субагент недоступен. Выполни inline: WebSearch по теме документа, синтезируй summary и список источников.
+> **Gemini CLI:** субагент недоступен. Выполни inline по `web-search.md`: WebSearch по теме документа, синтезируй summary и список источников.
 >
-> **Codex:** если в текущей сессии доступен agent/subagent tool, можно делегировать исследование. Иначе сообщи пользователю `subagents unavailable in this session, continuing inline` и выполни ту же inline-проверку.
+> **Codex:** если в текущей сессии доступен agent/subagent tool, можно делегировать исследование. Иначе сообщи пользователю `subagents unavailable in this session, continuing inline` и выполни ту же inline-проверку по `web-search.md`.
 
 ### Шаг 3. Показать превью
 

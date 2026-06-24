@@ -20,6 +20,16 @@ test("parseArgs defaults to all runtimes", () => {
   });
 });
 
+test("SKILLS matches docs skill directories", () => {
+  const skillDirs = fs
+    .readdirSync(path.join(repoRoot, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith("docs-"))
+    .map((entry) => entry.name)
+    .sort();
+
+  assert.deepEqual([...installer.SKILLS].sort(), skillDirs);
+});
+
 test("install copies managed skills without deleting unrelated skills", () => {
   const home = tempHome();
   const skillsRoot = path.join(home, ".claude", "skills");
@@ -82,6 +92,23 @@ test("install writes runtime and preserves user config", () => {
   const state = installer.readInstallState(installer.defaultPaths({ home, sourceRoot: repoRoot }));
   assert.equal(state.package, "@obviousbread/docs");
   assert.deepEqual(state.runtimes.codex.skills, installer.SKILLS);
+});
+
+test("install copies shared web-search.md reference into runtime", () => {
+  const home = tempHome();
+  const dataRoot = path.join(home, ".docs-plugin");
+
+  installer.install({
+    home,
+    sourceRoot: repoRoot,
+    runtimes: ["codex"],
+    quiet: true,
+  });
+
+  assert.equal(
+    fs.existsSync(path.join(dataRoot, "runtime", "references", "web-search.md")),
+    true,
+  );
 });
 
 test("install removes state-tracked legacy skill names during rename migration", () => {

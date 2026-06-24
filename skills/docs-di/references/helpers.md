@@ -58,6 +58,7 @@ sections = [
 | Межстрочный 1.0 | `pf.line_spacing = 1.0` в стиле и каждом параграфе |
 | Поля A4 (верх 2.0, низ 2.0, лево 3.0, право 1.5 см) | в `create_di` при создании Document |
 | Цвет — чёрный | дефолт Word (auto), нигде явно не задаём |
+| Служебные метаданные python-docx очищены | общий `lib/docx_meta.py::new_document()` |
 | Нумерация разделов 1, 2, 3 (арабская, жирная, по центру) | `_setup_di_numbering` ilvl=0, decimal, bold |
 | Нумерация пунктов X.Y (без пропусков, авто-сброс при новой секции) | `_setup_di_numbering` ilvl=1, multilevel |
 | Дашевый маркер `–` (en dash) | `_setup_dash_numbering` — bullet с U+2013 |
