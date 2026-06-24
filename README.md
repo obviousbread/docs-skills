@@ -1,6 +1,14 @@
-# docs
+<p align="center">
+  <img src="assets/logo.png" alt="docs-skills logo" width="320">
+</p>
 
-Portable agent skills for generating official Russian administrative documents in `.docx` format.
+<h1 align="center">docs</h1>
+
+<p align="center">
+  Portable agent skills for generating official Russian administrative documents in <code>.docx</code> format.
+</p>
+
+---
 
 `docs` installs the same `docs-*` skills into native harness skill directories, so Claude Code, Codex, and Gemini CLI can use one maintained version instead of copied, drifting folders.
 
