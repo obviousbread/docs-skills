@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.5
+
 ### fix
 
 - Added a shared fast WebSearch/WebFetch verification protocol and wired every WebSearch instruction to it, replacing unbounded legal-source reading with capped search/fetch rules, source priority, stop criteria, and structured evidence fields.
