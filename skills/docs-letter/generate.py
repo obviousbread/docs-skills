@@ -131,31 +131,8 @@ def _remove_table_borders(table):
         tblPr.append(tblBorders)
 
 
-def _set_table_indent(table, indent_twips):
-    """Установить отступ таблицы (может быть отрицательным)."""
-    tbl = table._tbl
-    tblPr = tbl.tblPr
-    if tblPr is None:
-        tblPr = OxmlElement("w:tblPr")
-        tbl.insert(0, tblPr)
-    for existing in tblPr.findall(qn("w:tblInd")):
-        tblPr.remove(existing)
-    tblInd = OxmlElement("w:tblInd")
-    tblInd.set(qn("w:w"), str(indent_twips))
-    tblInd.set(qn("w:type"), "dxa")
-    # Вставляем перед tblBorders или tblLook (OOXML порядок)
-    tblBorders = tblPr.find(qn("w:tblBorders"))
-    tblLook = tblPr.find(qn("w:tblLook"))
-    if tblBorders is not None:
-        tblBorders.addprevious(tblInd)
-    elif tblLook is not None:
-        tblLook.addprevious(tblInd)
-    else:
-        tblPr.append(tblInd)
-
-
-def _set_table_width(table, width_twips):
-    """Установить ширину таблицы в DXA."""
+def _set_table_width(table, width, width_type="dxa"):
+    """Установить ширину таблицы. width_type: "dxa" (твипы) или "pct" (5000 = 100%)."""
     tbl = table._tbl
     tblPr = tbl.tblPr
     if tblPr is None:
@@ -164,8 +141,8 @@ def _set_table_width(table, width_twips):
     for existing in tblPr.findall(qn("w:tblW")):
         tblPr.remove(existing)
     tblW = OxmlElement("w:tblW")
-    tblW.set(qn("w:w"), str(width_twips))
-    tblW.set(qn("w:type"), "dxa")
+    tblW.set(qn("w:w"), str(width))
+    tblW.set(qn("w:type"), width_type)
     # tblW должен идти перед jc, tblInd, tblBorders, tblLook
     # Вставляем после tblStyle (если есть) или в начало
     tblStyle = tblPr.find(qn("w:tblStyle"))
@@ -185,15 +162,15 @@ def _set_row_height(row, height_twips):
     trPr.append(trHeight)
 
 
-def _set_cell_width(cell, width_twips):
-    """Установить ширину ячейки."""
+def _set_cell_width(cell, width, width_type="dxa"):
+    """Установить ширину ячейки. width_type: "dxa" (твипы) или "pct" (2500 = 50%)."""
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
     for existing in tcPr.findall(qn("w:tcW")):
         tcPr.remove(existing)
     tcW = OxmlElement("w:tcW")
-    tcW.set(qn("w:w"), str(width_twips))
-    tcW.set(qn("w:type"), "dxa")
+    tcW.set(qn("w:w"), str(width))
+    tcW.set(qn("w:type"), width_type)
     tcPr.append(tcW)
 
 
@@ -313,16 +290,16 @@ def _build_header_table(doc, date_str, number_str, on_number_str,
     """
     cfg = _build_org_config()
 
-    # Таблица: 2 колонки (левая реквизиты | правая адресат)
+    # Таблица: 2 колонки (левая реквизиты | правая адресат).
+    # Ширина 100% (AutoFit по ширине окна), колонки 50/50, без смещения влево.
     table = doc.add_table(rows=1, cols=2)
     _remove_table_borders(table)
-    _set_table_width(table, 10310)
-    _set_table_indent(table, -671)
-    _set_grid_cols(table, [4786, 5524])
+    _set_table_width(table, 5000, "pct")
+    _set_grid_cols(table, [4674, 4674])
     _set_row_height(table.rows[0], 4819)
 
-    _set_cell_width(table.cell(0, 0), 4786)
-    _set_cell_width(table.cell(0, 1), 5524)
+    _set_cell_width(table.cell(0, 0), 2500, "pct")
+    _set_cell_width(table.cell(0, 1), 2500, "pct")
 
     left_cell = table.cell(0, 0)
     right_cell = table.cell(0, 1)
@@ -387,15 +364,16 @@ def _build_header_table(doc, date_str, number_str, on_number_str,
                    align=WD_ALIGN_PARAGRAPH.CENTER)
 
     # ── Правая колонка: адресат ───────────────────────────────────────────
+    # Текст с отступом слева 459 твипов от края ячейки.
     first = True
     for line in addressee_lines:
         if first:
             _cell_para(right_cell, line, size=14,
-                       align=WD_ALIGN_PARAGRAPH.LEFT)
+                       align=WD_ALIGN_PARAGRAPH.LEFT, left_indent_twips=459)
             first = False
         else:
             _cell_add_para(right_cell, line, size=14,
-                           align=WD_ALIGN_PARAGRAPH.LEFT)
+                           align=WD_ALIGN_PARAGRAPH.LEFT, left_indent_twips=459)
 
     return table
 
