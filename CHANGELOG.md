@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.4
+
+### fix
+
+- `docs-letter`: header letterhead table now uses 100% AutoFit-to-window width with even 50/50 columns and no negative left offset, so it no longer renders shifted into the page margin. Addressee text in the right column gets a fixed left indent. Removes the recurring need to realign the header by hand after generation.
+
 ## 0.3.3
 
 ### packaging
