@@ -71,14 +71,26 @@ def _build_org_config():
     full_name = o.get("full_name", "")
     short_name = o.get("short_name", "")
 
-    full_name_lines = []
-    if full_name:
-        full_name_lines.append(full_name)
+    def _split_pipe(val):
+        """Разбить значение по «|» на строки (построчная вёрстка бланка)."""
+        return [s.strip() for s in val.split("|") if s.strip()]
+
+    # Наименование: построчная вёрстка бланка из header_name_lines (по «|»),
+    # иначе — полное наименование одной строкой (как в org_details.full_name).
+    name_lines = _split_pipe(o.get("header_name_lines", "")) or (
+        [full_name] if full_name else [])
+    full_name_lines = list(name_lines)
     if short_name:
         full_name_lines.append(f"({short_name})")
 
     address_lines = []
-    if o.get("address"):
+    # Адрес: построчная вёрстка из header_address_lines (по «|»), префикс
+    # «адрес:» — только на первой строке; иначе — адрес одной строкой.
+    addr_lines = _split_pipe(o.get("header_address_lines", ""))
+    if addr_lines:
+        address_lines.append(f'адрес:{addr_lines[0]}')
+        address_lines.extend(addr_lines[1:])
+    elif o.get("address"):
         address_lines.append(f'адрес:{o["address"]}')
     if o.get("phone_fax"):
         address_lines.append(o["phone_fax"])
@@ -309,7 +321,8 @@ def _build_header_table(doc, date_str, number_str, on_number_str,
     # Надзорный орган (parent_org) — 11pt bold center, если указан
     _first_written = False
     if cfg.get("parent_org"):
-        display_text = cfg.get("parent_org_short") or cfg["parent_org"].upper()
+        # Наименование вышестоящего органа — прописными (ГОСТ Р 7.0.97-2016).
+        display_text = (cfg.get("parent_org_short") or cfg["parent_org"]).upper()
         _cell_para(left_cell, display_text, size=11, bold=True,
                    align=WD_ALIGN_PARAGRAPH.CENTER)
         _cell_add_para(left_cell, "", size=11,
@@ -345,19 +358,17 @@ def _build_header_table(doc, date_str, number_str, on_number_str,
     elif date_str:
         date_num_text = f"от {date_str} №"
     elif number_str:
-        date_num_text = f"от ____________ № {number_str}"
+        date_num_text = f"от ____________№ {number_str}"
     else:
-        date_num_text = "от ____________ №___________"
+        date_num_text = "от ____________№ ________"
     _cell_add_para(left_cell, date_num_text, size=14, underline=True,
                    align=WD_ALIGN_PARAGRAPH.CENTER)
 
-    # «на ___» — 14pt underlined center
+    # «на № … от …» — только для ответных писем. Инициативные письма
+    # ссылку на входящий не содержат (строка не выводится).
     if on_number_str:
-        on_text = f"на {on_number_str}"
-    else:
-        on_text = "на _________________"
-    _cell_add_para(left_cell, on_text, size=14, underline=True,
-                   align=WD_ALIGN_PARAGRAPH.CENTER)
+        _cell_add_para(left_cell, f"на {on_number_str}", size=14,
+                       underline=True, align=WD_ALIGN_PARAGRAPH.CENTER)
 
     # Финальный пустой параграф в левой ячейке
     _cell_add_para(left_cell, "", size=14,
@@ -675,7 +686,7 @@ def create_letter(
 
     on_number : str
         «На №» — для ответных писем. Например: "№ 32-024/13-3/1217 от 18.07.2025".
-        Пустая строка — стандартное подчёркивание.
+        Пустая строка — строка «на №» не выводится (инициативное письмо).
 
     executor_name : str
         ФИО исполнителя (Фамилия Имя Отчество). По умолчанию из конфигурации.
