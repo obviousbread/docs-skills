@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.3.6
+
+### feat
+
+- `docs-letter`: letterhead now follows records-management/GOST conventions out of the box. The superior-agency line renders uppercase, the blank reference line is tightened to «от ____________№ ________», and the «на № … от …» line is emitted only for reply letters (initiative letters no longer print an empty «на ___» line).
+- `docs-letter`: optional `header_name_lines` / `header_address_lines` org-details keys (pipe-delimited) lay out the organization name and address as separate centered letterhead lines, matching a hand-typed бланк. Absent keys fall back to single-line `full_name`/`address`; the canonical values stay untouched for `docs-ord` and `docs-protocol`.
+
+### docs
+
+- `docs-letter`: addressee is documented and exemplified as «Фамилия И.О.» (initials after the surname, GOST R 7.0.97-2016) across SKILL.md, references, and all usage examples; the signature block keeps «И.О. Фамилия».
+
 ## 0.3.5
 
 ### fix
