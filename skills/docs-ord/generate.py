@@ -34,17 +34,15 @@ def _warn_slash(text):
                 stacklevel=3,
             )
 
-import sys as _sys
+ORG_DETAILS_PATH = os.path.expanduser("~/.docs-plugin/org_details.md")
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-for _lib_path in (
-    os.path.join(_HERE, "..", "..", "lib"),
-    os.path.expanduser("~/.docs-plugin/runtime/lib"),
-):
-    if os.path.isdir(_lib_path) and _lib_path not in _sys.path:
-        _sys.path.insert(0, _lib_path)
-from db import log_generation, ORG_DETAILS_PATH
-from docx_meta import new_document
+
+def new_document():
+    doc = Document()
+    props = doc.core_properties
+    for field in ("author", "last_modified_by", "comments", "title", "subject", "keywords", "category"):
+        setattr(props, field, "")
+    return doc
 
 
 # ─── Загрузка реквизитов из org_details.md ────────────────────────────────────
@@ -100,17 +98,6 @@ def _build_org_config():
         "org_short": o.get("short_name", ""),
         "default_approved_by": approvers,
     }
-
-
-# Backward-compat: scripts in ~/.docs-plugin/ord/scripts/ may import ORG_CONFIGS directly.
-class _LazyOrgConfigs(dict):
-    """Dict, загружающий конфиг при первом обращении по любому ключу."""
-    def __missing__(self, key):
-        cfg = _build_org_config()
-        self[key] = cfg
-        return cfg
-
-ORG_CONFIGS = _LazyOrgConfigs()
 
 
 DOC_TYPE_CONFIGS = {
@@ -1623,12 +1610,6 @@ def create_ord(
     output_path = os.path.expanduser(output_path)
     doc.save(output_path)
     print(f"Сохранено: {output_path}")
-    log_generation(doc_type, title, output_path, {
-        "points_count": len(points),
-        "attachments_count": len(attachments),
-        "has_notify": bool(notify_persons),
-        "has_approval": bool(approved_by),
-    })
     return output_path
 
 

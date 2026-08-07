@@ -3,10 +3,8 @@
 ## Заголовок временного скрипта
 
 ```python
-import os, sys
-
-runtime_dir = os.path.expanduser("~/.docs-plugin/runtime")
-sys.path.insert(0, os.path.join(runtime_dir, "skills", "docs-protocol"))
+import sys
+sys.path.insert(0, "/path/to/installed/docs-protocol")
 from generate import create_protocol
 ```
 

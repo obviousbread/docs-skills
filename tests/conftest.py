@@ -84,19 +84,12 @@ def mock_org_config():
 
 @pytest.fixture(autouse=True)
 def patch_org_details(monkeypatch, mock_org_config):
-    """Monkeypatch _load_org_details and log_generation in every generator module."""
+    """Monkeypatch _load_org_details in every generator module."""
     monkeypatch.setattr(ord_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(letter_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(memo_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(di_generate, "_load_org_details", lambda: mock_org_config)
-    ord_generate.ORG_CONFIGS.clear()
-    _noop = lambda *a, **kw: None
-    monkeypatch.setattr(ord_generate, "log_generation", _noop)
-    monkeypatch.setattr(letter_generate, "log_generation", _noop)
-    monkeypatch.setattr(memo_generate, "log_generation", _noop)
-    monkeypatch.setattr(di_generate, "log_generation", _noop)
     monkeypatch.setattr(protocol_generate, "_load_org_details", lambda: mock_org_config)
-    monkeypatch.setattr(protocol_generate, "log_generation", _noop, raising=False)
 
 
 @pytest.fixture()

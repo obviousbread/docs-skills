@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.4.0
+
+### breaking
+
+- Replaced the custom npm installer and shared runtime with distribution through the Vercel Skills CLI (`npx skills add obviousbread/docs-skills`), including its native project/global scope and agent selection.
+- Reduced persistent user configuration to `~/.docs-plugin/org_details.md`; reusable examples and source context now come only from the optional `knowledge_base_path`. Removed `docs-finetune`, the examples store, generation history, install-state database, and one-off script directories.
+
+### feat
+
+- All document skills now retrieve as much relevant context as needed from the configured knowledge base and follow its root agent instructions.
+- `docs-di` prioritizes exact final job descriptions, distinguishes reuse, targeted-edit, and new-document modes, and resolves approvers from the knowledge base or current staff data.
+- `docs-letter` prioritizes final letters and their recorded recipient, signer, and executor; reusable private letterhead generators remain supported locally.
+- Document generators are self-contained, and legal or factual web verification follows local bounded search protocols.
+
 ## 0.3.6
 
 ### feat

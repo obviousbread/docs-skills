@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LOCAL_CONFIG_REFS = {"org_details.md", "org_notes.md"}
+LOCAL_CONFIG_REFS = {"org_details.md"}
 INTENTIONAL_FUTURE_REFS = {"knowledge_base_medical.md"}
 
 
@@ -18,44 +18,12 @@ def _markdown_files():
     yield from sorted((REPO_ROOT / "references").glob("*.md"))
 
 
-def test_web_search_protocol_defines_fast_reliable_evidence_rules():
-    text = _read(REPO_ROOT / "references" / "web-search.md")
-    required = [
-        "web-search.md",
-        "WebSearch",
-        "WebFetch",
-        "не более 3 queries",
-        "не более 2 fetched pages",
-        "publication.pravo.gov.ru",
-        "profstandart.rosmintrud.ru",
-        "consultant.ru",
-        "garant.ru",
-        "source_url",
-        "checked_at",
-        "confidence",
-        "не найден",
-        "Не выдумывать",
-    ]
-    missing = [token for token in required if token not in text]
-    assert not missing
-
-
-def test_every_websearch_instruction_points_to_shared_protocol():
+def test_every_websearch_instruction_points_to_local_protocol():
     offenders = []
     for path in _markdown_files():
         text = _read(path)
         if "WebSearch" in text and "web-search.md" not in text:
             offenders.append(str(path.relative_to(REPO_ROOT)))
-    assert offenders == []
-
-
-def test_runtime_reference_paths_exist_in_packaged_root_references():
-    offenders = []
-    for path in _markdown_files():
-        text = _read(path)
-        for rel in re.findall(r"~/.docs-plugin/runtime/(references/[^\s`)]+\.md(?:\.example)?)", text):
-            if not (REPO_ROOT / rel).exists():
-                offenders.append(f"{path.relative_to(REPO_ROOT)} -> {rel}")
     assert offenders == []
 
 
@@ -85,10 +53,39 @@ def test_backticked_markdown_references_resolve():
     assert offenders == []
 
 
-def test_all_generators_use_shared_docx_meta_new_document():
+def test_all_generators_are_self_contained():
     offenders = []
     for path in sorted((REPO_ROOT / "skills").glob("docs-*/generate.py")):
         text = _read(path)
-        if "from docx_meta import new_document" not in text:
+        if "def new_document" not in text or any(token in text for token in ("../../lib", ".docs-plugin/runtime", "from db import", "from docx_meta import")):
+            offenders.append(str(path.relative_to(REPO_ROOT)))
+    assert offenders == []
+
+
+def test_document_skills_use_the_knowledge_base_contract():
+    for name in ("docs-ord", "docs-letter", "docs-memo", "docs-di", "docs-protocol"):
+        text = _read(REPO_ROOT / "skills" / name / "SKILL.md")
+        assert "knowledge_base_path" in text
+        assert "Читай столько" in text
+        assert "корневые инструкции" in text
+
+
+def test_org_template_contains_knowledge_base_path():
+    template = REPO_ROOT / "skills" / "docs-init" / "references" / "org_details.md.example"
+    assert "knowledge_base_path:" in _read(template)
+
+
+def test_user_config_has_no_legacy_context_stores():
+    offenders = []
+    forbidden = (
+        "~/.docs-plugin/di/approvers.md",
+        "~/.docs-plugin/ord/scripts",
+        "/examples/",
+        "docs.db",
+        "generations.jsonl",
+    )
+    for path in _markdown_files():
+        text = _read(path)
+        if any(token in text for token in forbidden):
             offenders.append(str(path.relative_to(REPO_ROOT)))
     assert offenders == []

@@ -1,12 +1,15 @@
 ---
 name: docs-letter
 description: "Use when the user needs to create an official letter on organizational letterhead. Trigger when user mentions: официальное письмо, исходящее письмо, сопроводительное письмо, ответное письмо, бланк письма, деловое письмо, письмо организации. Also trigger when user asks to write a letter to another organization, respond to a request, send accompanying documents, or create any formal correspondence. НЕ использовать для приказов, распоряжений (используй docs-ord), служебных записок (используй docs-memo)."
-compatibility: "Python 3, python-docx. macOS/Linux."
 ---
 
 # docs-letter — Официальные письма
 
 Письмо создается через `generate.py` (python-docx, с нуля) - без шаблонных файлов.
+
+## Пользовательский контекст
+
+Прочитай `~/.docs-plugin/org_details.md`. Если `knowledge_base_path` заполнен и каталог существует, считай его корнем пользовательского хранилища: сначала прочитай корневые инструкции (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md` или эквивалент текущего агента), затем найди письма по теме и адресату. Читай столько карточек и связанных материалов, сколько нужно, пока новые источники перестают добавлять факты, дословные формулировки, адресатов, подписантов, исполнителей, основания и приложения. В карточке сначала используй поле `финал` и раздел `## Итоговый документ`; черновики, альтернативные приложения и связанные файлы служат дополнительным контекстом и не заменяют финал. Для воспроизведения ранее выпущенного письма бери адресата, подписанта и исполнителя из найденного финала; `org_details.md` используй как запасной источник, если этих реквизитов нет. При неоднозначности извлечения или важности формы открой оригинал по указателю карточки. Отделяй данные источника от правил скилла и собственных предложений; не выдумывай факты и реквизиты без подтверждения пользователя.
 
 ## 0. Карта references
 
@@ -17,7 +20,6 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 | Файл | Что содержит | Критичные нюансы |
 |------|-------------|------------------|
 | `letter-patterns.md` | Паттерны 10+ типов писем: открывающие фразы, структура, речевые обороты | Тип письма определяет открывающую фразу. Не использовать фразы одного типа в другом |
-| `~/.docs-plugin/runtime/references/web-search.md` | Быстрый протокол WebSearch/WebFetch: лимиты запросов, приоритет источников, stop rules, JSON evidence | Читать перед `recipient-verifier`, `npa-verifier`, `research-subagent`; в dev source см. `references/web-search.md` |
 | `~/.docs-plugin/org_details.md` | Реквизиты, подписант, исполнитель | Должность подписанта берется ТОЛЬКО отсюда |
 
 ### Читать по ситуации
@@ -32,7 +34,6 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 |------|-------------|
 | `helpers.md` | При генерации .docx (API create_letter, формат body_paragraphs) |
 | `maintenance.md` | При изменении generate.py |
-| `~/.docs-plugin/letter/examples/letter.md` | Если существует - читай: адресаты (контактная книга) и полные тела реальных писем с подписантами (добавлены docs-finetune) |
 
 ## 1. Workflow
 
@@ -42,7 +43,7 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 >
 > **Codex:** `~/.docs-plugin/org_details.md` не подгружается автоматически. Прочитай файл явно до любых других шагов. Используй native Codex tools. Если файла нет — сообщи пользователю и предложи запустить docs-init.
 
-Прочитать `letter-patterns.md`, `~/.docs-plugin/runtime/references/web-search.md`, `~/.docs-plugin/org_details.md` - **до** формирования текста и запуска субагентов.
+Прочитать `letter-patterns.md` и `~/.docs-plugin/org_details.md` - **до** формирования текста и запуска субагентов.
 
 ### Шаг 1. Понять задачу
 
@@ -201,7 +202,7 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 |-----------|------|-----------|
 | Генератор | `skills/docs-letter/generate.py` | Письма на бланке организации из `~/.docs-plugin/org_details.md` |
 | Паттерны | `skills/docs-letter/references/letter-patterns.md` | Речевые обороты по типам писем |
-| Приватные бланки | `~/.docs-plugin/letter/scripts/*.py`, `~/.docs-plugin/org_notes.md` | Локальные сценарии сторонних бланков, не коммитятся в репозиторий |
+| Приватные бланки | `~/.docs-plugin/letter/scripts/*.py` | Только переиспользуемые локальные сценарии сторонних бланков; одноразовые сценарии создавать в `/tmp` |
 | Готовые документы | `{output_dir_letter}/<название>.docx` из `~/.docs-plugin/org_details.md` | Выходные файлы |
 
 **Правило именования файлов:** в `output_path` не использовать подчеркивания (`_`). Слова разделяются пробелом.
