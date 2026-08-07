@@ -1,60 +1,66 @@
 <p align="center">
-  <img src="assets/logo.png" alt="docs-skills logo" width="320">
+  <img src="assets/logo.png" alt="Логотип docs-skills" width="320">
 </p>
 
 <h1 align="center">docs</h1>
 
 <p align="center">
-  Agent skills for generating official Russian administrative documents in <code>.docx</code> format.
+  Навыки для ИИ-агентов, которые создают официальные документы на русском языке в формате <code>.docx</code>.
 </p>
 
-## Skills
+<p align="center">
+  <strong>Русский</strong> · <a href="./README.en.md">English</a>
+</p>
 
-- `docs-init` — organization settings and knowledge-base path.
-- `docs-ord` — orders, directives, and instructions.
-- `docs-letter` — official letters.
-- `docs-memo` — internal memos.
-- `docs-di` — job descriptions.
-- `docs-protocol` — meeting minutes.
+## Навыки
 
-## Install
+- `docs-init` — настройка организации и пути к базе знаний.
+- `docs-ord` — приказы, распоряжения и указания.
+- `docs-letter` — официальные письма.
+- `docs-memo` — служебные записки.
+- `docs-di` — должностные инструкции.
+- `docs-protocol` — протоколы совещаний.
 
-Distribution uses the official [Vercel Skills CLI](https://github.com/vercel-labs/skills):
+## Установка
+
+Для установки используется официальный [Vercel Skills CLI](https://github.com/vercel-labs/skills):
 
 ```bash
 npx skills add obviousbread/docs-skills
 ```
 
-The interactive menu lets you choose skills, project or global scope, target agents, and copy or symlink installation. Project scope is the default; the canonical shared location is `.agents/skills`. Select Claude Code explicitly when you also want `.claude/skills`.
+В интерактивном меню можно выбрать навыки, область установки — текущий проект или глобальное окружение, целевых агентов, а также способ установки — копирование или символические ссылки.
 
-Non-interactive examples:
+По умолчанию навыки устанавливаются в текущий проект. Стандартный общий каталог — `.agents/skills`. Если навыки также нужны Claude Code, выберите его отдельно: тогда они появятся и в `.claude/skills`.
+
+Примеры установки без интерактивного меню:
 
 ```bash
-# Codex, current project
+# Codex, текущий проект
 npx skills add obviousbread/docs-skills --skill '*' --agent codex --yes --copy
 
-# Codex, global
+# Codex, глобальная установка
 npx skills add obviousbread/docs-skills --skill '*' --agent codex --global --yes --copy
 
-# Codex and Claude Code, current project
+# Codex и Claude Code, текущий проект
 npx skills add obviousbread/docs-skills --skill '*' --agent codex --agent claude-code --yes --copy
 ```
 
-## First run
+## Первый запуск
 
-Run `docs-init`. It writes `~/.docs-plugin/org_details.md` with organization details, output paths, an optional staff-list path, and an optional `knowledge_base_path` pointing to an Obsidian vault or equivalent knowledge base.
+Запустите `docs-init`. Команда создаст файл `~/.docs-plugin/org_details.md` с реквизитами организации и путями для готовых документов. При необходимости в нём также можно указать путь к списку сотрудников и `knowledge_base_path` — путь к хранилищу Obsidian или другому каталогу с рабочими материалами.
 
-When the knowledge-base path is configured, document skills read its root agent instructions and retrieve as much relevant source context as needed. User-specific examples are kept in that knowledge base; there is no separate finetune command or examples store.
+Если база знаний настроена, навыки читают инструкции из её корня и находят контекст, нужный для подготовки документа. Пользовательские примеры хранятся там же.
 
-## Development
+## Разработка
 
 ```bash
 python3 -m pytest tests
 npx skills add . --list
 ```
 
-Requirements: Python 3, `python-docx`, and `openpyxl`.
+Требования: Python 3, `python-docx` и `openpyxl`.
 
-## License
+## Лицензия
 
 MIT
