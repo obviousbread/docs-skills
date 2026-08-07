@@ -35,18 +35,9 @@
 
 `_verify_fios` сверяет `(lastname.lower(), initials.lower())` со штатным списком и при несовпадении выбрасывает `ValueError` с fuzzy-подсказками (до 5 кандидатов, порог 0.6).
 
-## Импорт shared-кода
+## Самодостаточность
 
-Сначала локальный `../../lib`, затем `~/.docs-plugin/runtime/lib` как fallback. Такой порядок обязателен для корректной работы как из dev-дерева, так и в установленном runtime. Не менять порядок без веской причины.
-
-```python
-for _lib_path in (
-    os.path.join(_HERE, "..", "..", "lib"),
-    os.path.expanduser("~/.docs-plugin/runtime/lib"),
-):
-    if os.path.isdir(_lib_path) and _lib_path not in _sys.path:
-        _sys.path.insert(0, _lib_path)
-```
+`generate.py` не должен импортировать файлы вне каталога `docs-protocol`: Vercel Skills устанавливает каждый скилл независимо.
 
 ## Тесты
 

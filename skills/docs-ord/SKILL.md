@@ -1,10 +1,13 @@
 ---
 name: docs-ord
 description: "Use when the user needs an organizational directive document: order (приказ), directive (распоряжение), or instruction (указание). Trigger when user mentions: приказ, распоряжение, указание, ОРД, организационно-распорядительный документ, написать приказ, подготовить распоряжение, издать указание, внести изменения в приказ, or any directive/order. Also trigger when user asks to create a commission order, approve a regulation (положение), or issue any formal organizational document. Also trigger in REVIEW mode when the user supplies an existing order/directive (.doc/.docx) and asks to review, check, proofread or fix it: ревью приказа, проверь приказ, поправь приказ, вычитай приказ, отрецензируй приказ, посмотри приказ."
-compatibility: "Python 3, python-docx. macOS/Linux."
 ---
 
 # docs-ord – Организационно-распорядительные документы
+
+## Пользовательский контекст
+
+Прочитай `~/.docs-plugin/org_details.md`. Если `knowledge_base_path` заполнен и каталог существует, считай его корнем пользовательского хранилища: сначала прочитай корневые инструкции (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md` или эквивалент текущего агента), затем найди карточки ОРД по теме задачи. Читай столько карточек и связанных материалов, сколько нужно, пока новые источники перестают добавлять факты, дословные формулировки, основания, распорядительные пункты, согласование, ознакомление и приложения. При неоднозначности извлечения или важности формы открой оригинал по указателю карточки. Отделяй данные источника от правил скилла и собственных предложений; не выдумывай обязанности, сроки и реквизиты без подтверждения пользователя.
 
 ## Режим работы: создание или ревью
 
@@ -23,7 +26,6 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 |------|-------------|------------------|
 | `npa-rules.md` | Формат реквизитов НПА, верификация через WebSearch, действия при ненахождении | **Исключения из формата:** кодексы (ТК РФ), Конституция, ГОСТы, СанПиНы указываются БЕЗ реквизитов «от ... №...». Субагент `npa-verifier` этого не знает и вернет полные реквизиты - главный агент обязан отфильтровать |
 | `basis-rules.md` | Правила блока обоснования (вводная часть до ключевого слова) | Обоснование не заканчивается запятой. Ключевое слово на отдельной строке после пустой строки |
-| `~/.docs-plugin/runtime/references/web-search.md` | Быстрый протокол WebSearch/WebFetch: лимиты запросов, приоритет источников, stop rules, JSON evidence | Обязателен для `npa-verifier` и inline-проверок; в dev source см. `references/web-search.md` |
 | `~/.docs-plugin/org_details.md` | Реквизиты, шапка, подписант, дефолтные согласующие, структура учреждения | Должность подписанта берется ТОЛЬКО отсюда. Правило для подразделений и филиалов - уточнить у пользователя |
 
 ### Читать по ситуации
@@ -46,7 +48,6 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 | `usage-examples.md` | При написании скрипта (примеры вызова create_ord) |
 | `review-checklist.md` | В **режиме ревью** (раздел 5): чек-лист конформанса эталону generate.py — пол, а не потолок |
 | `maintenance.md` | При изменении generate.py (правило синхронизации) |
-| `~/.docs-plugin/ord/examples/ord.md` | Если существует - читай: названия приказов, non-НПА обоснования, формулировки пунктов и приложения из реальных документов (добавлены docs-finetune) |
 
 ## 1. Workflow
 
@@ -56,7 +57,7 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 >
 > **Codex:** `~/.docs-plugin/org_details.md` не подгружается автоматически. Прочитай файл явно до любых других шагов. Используй native Codex tools. Если файла нет – сообщи пользователю и предложи запустить docs-init.
 
-Прочитать `npa-rules.md`, `basis-rules.md`, `~/.docs-plugin/runtime/references/web-search.md`, `~/.docs-plugin/org_details.md` – **до** запуска субагентов и до формирования текста.
+Прочитать `npa-rules.md`, `basis-rules.md` и `~/.docs-plugin/org_details.md` – **до** запуска субагентов и до формирования текста.
 
 ### Шаг 1. Понять задачу
 
@@ -170,7 +171,7 @@ compatibility: "Python 3, python-docx. macOS/Linux."
 | Тип файла | Путь | Пояснение |
 |-----------|------|-----------|
 | Библиотека хелперов | `skills/docs-ord/generate.py` | Переиспользуемый код. Не модифицировать без обновления SKILL.md |
-| Кастомные скрипты | `~/.docs-plugin/ord/scripts/<название>.py` | Одноразовые скрипты. Импортируй `generate.py` из установленного `docs-ord` или `~/.docs-plugin/runtime/skills/docs-ord` |
+| Временные сценарии | `/tmp/<название>.py` | Одноразовые сборочные сценарии; не сохранять в пользовательском конфиге |
 | Готовые документы | `{output_dir_ord}/<название>.docx` из `~/.docs-plugin/org_details.md` | Выходные файлы |
 
 ## 4. Правило согласованности

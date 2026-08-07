@@ -12,7 +12,7 @@
 | Новый тип письма | `letter-patterns.md` + `usage-examples.md` |
 | Новый хелпер / API | `helpers.md` |
 | Workflow / стиль | `SKILL.md` |
-| Локальный сторонний бланк | `~/.docs-plugin/org_notes.md` + `~/.docs-plugin/letter/scripts/*.py` (не коммитить) |
+| Локальный сторонний бланк | `~/.docs-plugin/letter/scripts/*.py` (не коммитить) |
 
 ## Обновление реквизитов организации
 
@@ -30,6 +30,5 @@ letter/
     ├── letter-patterns.md      # Паттерны деловой переписки (10+ типов)
     ├── helpers.md              # API generate.py
     ├── usage-examples.md       # 9 примеров кода
-    # Примеры из finetune: ~/.docs-plugin/examples/letter.md (вне репо)
     └── maintenance.md          # Этот файл
 ```

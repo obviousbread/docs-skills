@@ -148,42 +148,36 @@ Boris Cherny (creator of Claude Code) keeps his team's file around 100 lines. Un
 ### Stack
 
 - Python 3 for skill generators. Dependencies: `python-docx`, `openpyxl`. No project virtualenv is assumed.
-- Node.js for the installer and distribution. Package: `@obviousbread/docs`, distributed via `npx`.
-- Target platforms: macOS and Linux. Installed runtime lives in `~/.docs-plugin/`.
+- Distribution uses the Vercel `skills` CLI. There is no custom installer or shared runtime.
+- Target platforms: macOS and Linux. User configuration lives in `~/.docs-plugin/`.
 
 ### Layout
 
-- `skills/docs-*/` – portable agent skills, copied by the installer into native harness skill locations.
-- `lib/` – shared Python code. Shared data layer: `lib/db.py`.
-- `bin/install.js` – installer entry point.
-- `references/` – non-skill docs (e.g. `platform-support.md`).
+- `skills/docs-*/` – self-contained portable agent skills discovered and installed independently.
 - `tests/` – Python tests (pytest).
-- `~/.docs-plugin/` – installed runtime and persistent user data (organization details, examples, scripts, logs, installer runtime). Never committed.
+- `~/.docs-plugin/org_details.md` – persistent organization settings and optional `knowledge_base_path`. Never committed.
 
 ### Commands
 
-- Tests: `npm test`
-- Tarball check: `npm pack --dry-run --json` (verify the tarball contains all runtime-critical files)
-- End-user install: `npx @obviousbread/docs@latest`
+- Tests: `python3 -m pytest tests`
+- Discovery check: `npx skills add . --list`
+- End-user install: `npx skills add obviousbread/docs-skills`
 
 Prefer single-file or single-test runs during iteration. Full suites are for the final verification pass.
 
 ### Conventions specific to this repo
 
 - **Skill sync**: when modifying `generate.py` in any document-generation skill, update its `SKILL.md` and `references/maintenance.md` if present. Divergence breaks agent behavior.
-- **Import style (Python)**: generators import shared code from local `../../lib` first, then `~/.docs-plugin/runtime/lib` as an installed fallback.
-- **Skill inventory**: when adding, removing, or renaming a portable skill, update the installer skill inventory in `bin/install.js`.
-- **Runtime payload**: when adding new runtime asset types, update `package.json.files` so `npx` installs the complete payload.
+- **Self-contained skills**: a skill must not depend on sibling skills, repository-root runtime files, or `~/.docs-plugin/runtime`.
+- **User context**: organization facts stay in `org_details.md`; reusable wording and source context come only from `knowledge_base_path`.
 
 ### Runtime Shape
 
 Architectural invariants. Violating any of these breaks distribution.
 
-- `package.json` is the only version source.
-- `bin/install.js` is the only supported distribution path.
-- No Claude/Codex/Gemini harness-specific manifests are maintained.
-- Installer copies runtime files into `~/.docs-plugin/runtime` and copies `docs-*` skill folders into native harness locations.
-- npm publishing uses trusted publishing (OIDC) from `.github/workflows/publish.yml`, triggered on `v*` tags — no long-lived npm token. The npmjs trusted publisher is configured for repo `obviousbread/docs-skills` + workflow `publish.yml`.
+- The Vercel `skills` CLI is the only supported distribution path.
+- Every installable directory contains its own `SKILL.md` and all runtime assets it references.
+- Harness paths and project/global scope are selected by the CLI, not maintained by this repository.
 
 ### Versioning & Git
 
@@ -191,27 +185,20 @@ Architectural invariants. Violating any of these breaks distribution.
 - Solo no-ff workflow: branch → implement → verify → `git merge --no-ff` into `main` → delete the topic branch. `--no-ff` is mandatory so each feature stays one visible unit in history.
 - Commit atomically: one logical change per commit, each with a short imperative summary. Typical feature work is 3–10 atomic commits; split larger work into multiple branches.
 - Conventional Commits, English, lowercase imperative: `type(scope): summary`. Types: `feat`, `fix`, `refactor`, `style`, `docs`, `chore`, `test`. Scope required except for `chore` and `docs`.
-- Pre-1.0: bump the patch for all release work unless a minor or major is explicitly decided.
 - Keep `CHANGELOG.md` in Keep a Changelog 1.1.0 style.
-- Release commit on `main`: `chore(release): cut X.Y.Z`. Annotated tag matching `package.json`: `git tag -a vX.Y.Z -m "X.Y.Z"`.
 - **Never merge a topic branch, push, or publish without explicit user confirmation.**
 
 ### Releases
 
 0. **Personal-data gate (blocking).** Before any release commit, tag, or publish, scan the working tree and the staged diff for personal or identifying data (real names, organization names, addresses, contact details, requisites, anything tracing to the author or their workplace). If anything is found, stop and depersonalize first. A commit, release, or publish must not proceed while identifying data is present anywhere in the tracked content.
-1. Update `package.json` version.
-2. Update `CHANGELOG.md`.
-3. Run `npm test` and `npm pack --dry-run --json` to confirm tests pass and the tarball contains all runtime-critical files.
-4. **Print the full release contents to the chat** — the version, the `CHANGELOG.md` entry, and the `npm pack --dry-run` file list — and wait for explicit user confirmation. Do not publish, tag, push, or create a release before the user confirms.
-5. After confirmation, create the annotated git tag matching `package.json` (`git tag -a vX.Y.Z -m "X.Y.Z"`), then push `main` and the tag (`git push origin main --follow-tags`).
-6. The tag push triggers `.github/workflows/publish.yml`, which publishes to npm via trusted publishing (OIDC) — no local `npm publish`, no npm token. Wait for the workflow to succeed, then confirm the version resolves (`npm view @obviousbread/docs version`).
-7. Create the remote release paired with that tag. The GitHub release title is exactly the version number `X.Y.Z` — no description or feature text (e.g. `0.3.2`, not `0.3.2 — added review mode`). Use the `CHANGELOG.md` entry as the release body.
+1. Update `CHANGELOG.md`.
+2. Run `python3 -m pytest tests` and `npx skills add . --list`.
+3. Show the release contents and wait for explicit user confirmation before committing, tagging, pushing, or creating a release.
 
 ### Forbidden
 
-- Do not commit `~/.docs-plugin/` (persistent user data: organization details, examples, scripts, logs, installer runtime).
+- Do not commit `~/.docs-plugin/` (persistent user configuration and scripts).
 - Do not commit output `.docx` files.
-- Do not widen installer cleanup to all `docs-*` directories by prefix alone. The installer owns only skill directories explicitly marked by its metadata and known legacy migration targets.
 - **No real identifying data in committed content.** Everything that ships (skills, references, examples, tests, fixtures, sample documents, docstrings, changelog) must use only generic, clearly fictional placeholders. Never name a real organization, person, address, contact detail, or institutional requisite — including the author's own employer or anything that could identify the author. Real values live only in `~/.docs-plugin/` and are read at runtime; if a value is absent, use a depersonalized default.
 
 ---
@@ -223,3 +210,4 @@ Architectural invariants. Violating any of these breaks distribution.
 When the user corrects your approach, append a one-line rule here before ending the session. Write it concretely ("Always use X for Y"), never abstractly ("be careful with Y"). If an existing line already covers the correction, tighten it instead of adding a new one. Remove lines when the underlying issue goes away (model upgrades, refactors, process changes).
 
 - Keep the runtime depersonalized: never hardcode personal/org data (ФИО, document author, org requisites, track-changes revision author) in a skill or runtime. Read all such values from the `~/.docs-plugin/org_details.md` config; if a value is absent, use a depersonalized default. Before every commit and release, run the personal-data gate (see Releases step 0) and block on any real identifying data. New config key for review mode: `revision_author` (author shown on tracked revisions).
+- Keep each skill independently installable through Vercel Skills; do not add shared runtime dependencies or a second user-context store beside `knowledge_base_path`.

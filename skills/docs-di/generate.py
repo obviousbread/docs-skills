@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Генератор должностных инструкций (ДИ).
 
-Конфигурация организации загружается из ~/.docs-plugin/org_details.md через
-общий lib/db.py. При отсутствии файла запустите docs-init для первичной
-настройки.
+Конфигурация организации загружается из ~/.docs-plugin/org_details.md.
+При отсутствии файла запустите docs-init для первичной настройки.
 
 Использование:
     python3 generate.py  # создает /tmp/ДИ smoke-test.docx с примером
@@ -21,10 +20,10 @@
 
 import os
 import re
-import sys as _sys
 import warnings
 from datetime import date
 
+from docx import Document
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
@@ -32,16 +31,15 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-for _lib_path in (
-    os.path.join(_HERE, "..", "..", "lib"),
-    os.path.expanduser("~/.docs-plugin/runtime/lib"),
-):
-    _lib_path = os.path.abspath(_lib_path)
-    if os.path.isdir(_lib_path) and _lib_path not in _sys.path:
-        _sys.path.insert(0, _lib_path)
-from db import log_generation, ORG_DETAILS_PATH
-from docx_meta import new_document
+ORG_DETAILS_PATH = os.path.expanduser("~/.docs-plugin/org_details.md")
+
+
+def new_document():
+    doc = Document()
+    props = doc.core_properties
+    for field in ("author", "last_modified_by", "comments", "title", "subject", "keywords", "category"):
+        setattr(props, field, "")
+    return doc
 
 
 # ─── Валидация текста ──────────────────────────────────────────────────────────
@@ -741,10 +739,6 @@ def create_di(
 
     doc.save(final_path)
     print(f"Сохранено: {final_path}")
-    log_generation("di", position_full, final_path, {
-        "approvers_count": len(approvers),
-        "sections_count": len(sections),
-    })
     return final_path
 
 
