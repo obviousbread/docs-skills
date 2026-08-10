@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.7.0
+
+### feat
+
+- Added the independently installable `docs-staff-list` skill for probing and consolidating heterogeneous staff `.xls`/`.xlsx` exports into one verified six-column workbook.
+- `docs-protocol` now reads staff data from either a workbook or a directory of dated consolidated lists, finds headers within the first 15 rows, and accepts combined or split name columns.
+
+### config
+
+- `docs-init` now documents `staff_file` as either an exact workbook or a directory, enabling automatic consumption of the latest `docs-staff-list` output.
+
+### test
+
+- Added unit, end-to-end workbook, staff-consumer compatibility, and portable skill discovery coverage for `docs-staff-list`.
+
 ## 0.6.0
 
 ### feat
