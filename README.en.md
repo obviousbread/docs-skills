@@ -20,6 +20,7 @@
 - `docs-memo` — internal memos.
 - `docs-di` — job descriptions.
 - `docs-protocol` — meeting minutes.
+- `proofread` — DOCX proofreading with tracked changes and selective comments.
 
 ## Install
 
