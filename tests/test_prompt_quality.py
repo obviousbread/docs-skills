@@ -63,7 +63,7 @@ def test_all_generators_are_self_contained():
 
 
 def test_document_skills_use_the_knowledge_base_contract():
-    for name in ("docs-ord", "docs-letter", "docs-memo", "docs-di", "docs-protocol"):
+    for name in ("docs-ord", "docs-letter", "docs-memo", "docs-di", "docs-protocol", "docs-polozheniya"):
         text = _read(REPO_ROOT / "skills" / name / "SKILL.md")
         assert "knowledge_base_path" in text
         assert "Читай столько" in text

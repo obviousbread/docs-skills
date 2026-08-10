@@ -44,6 +44,10 @@ protocol_generate = _load_module(
     "protocol_generate",
     os.path.join(REPO_ROOT, "skills", "docs-protocol", "generate.py"),
 )
+polozheniya_generate = _load_module(
+    "polozheniya_generate",
+    os.path.join(REPO_ROOT, "skills", "docs-polozheniya", "generate.py"),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +61,7 @@ def mock_org_config():
         "parent_org": "Тестовое агентство",
         "parent_org_short": "",
         "full_name": "Тестовое учреждение «Центр тестирования»",
+        "full_name_gen": "Тестового учреждения «Центр тестирования»",
         "short_name": "ТУ ЦТ",
         "address": "[адрес организации]",
         "phone_fax": "тел.: +7 (000) 000-00-00",
@@ -65,6 +70,8 @@ def mock_org_config():
         "ogrn": "0000000000000",
         "inn_kpp": "0000000000/000000000",
         "leader_title": "Генеральный директор",
+        "leader_title_gen": "генерального директора",
+        "leader_title_ins": "генеральным директором",
         "leader_name_nom": "Т.Т. Тестов",
         "leader_name_gen": "Т.Т. Тестова",
         "author_position": "Начальник отдела тестирования",
@@ -78,6 +85,7 @@ def mock_org_config():
         "output_dir_letter": "/tmp",
         "output_dir_memo": "/tmp",
         "output_dir_di": "/tmp",
+        "output_dir_polozheniya": "/tmp",
         "output_dir_protocol": "/tmp",
     }
 
@@ -90,6 +98,7 @@ def patch_org_details(monkeypatch, mock_org_config):
     monkeypatch.setattr(memo_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(di_generate, "_load_org_details", lambda: mock_org_config)
     monkeypatch.setattr(protocol_generate, "_load_org_details", lambda: mock_org_config)
+    monkeypatch.setattr(polozheniya_generate, "_load_org_details", lambda: mock_org_config)
 
 
 @pytest.fixture()
