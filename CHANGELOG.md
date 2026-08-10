@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.7.1
+
+### fix
+
+- `proofread`: duplicate-paragraph expansion now indexes paragraph text once instead of rescanning the whole document for every edit; the standard workflow relies on `review`'s built-in preflight and keeps `check` as an optional diagnostic command.
+
+### test
+
+- Added deterministic regression coverage for linear duplicate-paragraph expansion and `review` preflight failures that leave no output file.
+
 ## 0.7.0
 
 ### feat

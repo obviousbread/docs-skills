@@ -527,12 +527,16 @@ def _add_comment(paragraph, comments_root, comment_id, text, author):
 
 def _review_targets(targets, paras):
     """Expand a selected block to identical paragraph copies by default."""
+    duplicates = {}
+    for paragraph in paras:
+        duplicates.setdefault(_ptext(paragraph), []).append(paragraph)
     expanded = []
     for idx, edit, paragraph in targets:
-        candidates = [paragraph]
-        if edit.get('all_duplicates', True):
-            original = _ptext(paragraph)
-            candidates = [p for p in paras if _ptext(p) == original]
+        candidates = (
+            duplicates[_ptext(paragraph)]
+            if edit.get('all_duplicates', True)
+            else [paragraph]
+        )
         for candidate in candidates:
             expanded.append((idx, edit, candidate))
     return expanded
