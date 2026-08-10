@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.7.2
+
+### fix
+
+- `proofread`: added a two-command workflow that combines project intake and extraction, then runs preflighted tracked changes, author-aware structural audit, and one-process comparative rendering; valid output replaces an existing result only after every automated check succeeds.
+- `proofread`: removed the generic `documents` handoff from the standard path and bounded optional knowledge-base lookup, reducing orchestration overhead while preserving page-by-page visual QA.
+
+### test
+
+- Added regression coverage for non-overwriting intake, portable operation without a `ПРОЕКТЫ` directory, edit-author auditing, and preservation of an existing result after preflight failure.
+
 ## 0.7.1
 
 ### fix
