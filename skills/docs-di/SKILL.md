@@ -1,6 +1,6 @@
 ---
 name: docs-di
-description: "Use when the user needs a job description (должностная инструкция, ДИ) for an employee of an organization configured in ~/.docs-plugin/org_details.md. Trigger when user mentions: должностная инструкция, ДИ, написать должностную, подготовить инструкцию для должности, должностные обязанности, оформить ДИ. Covers specialist, head of department, and head of directorate positions. НЕ использовать для приказов (docs-ord), писем (docs-letter), служебных записок (docs-memo), положений о подразделении (polozheniya)."
+description: "Use when the user needs a job description (должностная инструкция, ДИ) for an employee of an organization configured in ~/.docs-plugin/org_details.md. Trigger when user mentions: должностная инструкция, ДИ, написать должностную, подготовить инструкцию для должности, должностные обязанности, оформить ДИ. Covers specialist, head of department, and head of directorate positions. НЕ использовать для приказов (docs-ord), писем (docs-letter), служебных записок (docs-memo), положений о структурном подразделении (docs-polozheniya)."
 ---
 
 # docs-di — Должностные инструкции (ДИ)
@@ -21,7 +21,7 @@ description: "Use when the user needs a job description (должностная 
 
 | Файл | Что содержит | Критичные нюансы |
 |------|--------------|------------------|
-| `references/structure.md` | Эталонная 6-разделная структура ДИ, шаблонные формулировки, правила нумерации и оформления | Разделы — арабские (не римские, в отличие от Положения в docs-ord). Пункты X.Y, без пропусков. |
+| `references/structure.md` | Эталонная 6-разделная структура ДИ, шаблонные формулировки, правила нумерации и оформления | Разделы — арабские. Пункты X.Y, без пропусков. Положение о СП создается через docs-polozheniya. |
 | `references/tier_rules.md` | Различия между тирами (specialist, dept_head, unit_head): квалификация, иерархия 1.4-1.5, объем прав, цепочка СОГЛАСОВАНО (по ключам ролей, без ФИО) | Тир определяется по названию должности; при сомнении — спросить пользователя |
 | Карточка или раздел о согласовании ДИ в пользовательском хранилище | Текущие ФИО, должности и профильные руководители | Найти через `knowledge_base_path`, если такой источник есть; перед использованием сверить с точной итоговой ДИ и актуальным `staff_file` |
 | `references/profstandart-rules.md` | Поиск, валидация и извлечение содержимого из профстандартов Минтруда | Если ПС не указан — WebSearch, представить кандидатов; если указан — все равно валидировать применимость |

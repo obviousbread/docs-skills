@@ -19,6 +19,7 @@
 - `docs-letter` — official letters.
 - `docs-memo` — internal memos.
 - `docs-di` — job descriptions.
+- `docs-polozheniya` — standalone organizational-unit regulations.
 - `docs-protocol` — meeting minutes.
 - `proofread` — DOCX proofreading with tracked changes and selective comments.
 

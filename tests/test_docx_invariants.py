@@ -2,7 +2,14 @@
 
 from docx import Document
 
-from conftest import di_generate, letter_generate, memo_generate, ord_generate, protocol_generate
+from conftest import (
+    di_generate,
+    letter_generate,
+    memo_generate,
+    ord_generate,
+    polozheniya_generate,
+    protocol_generate,
+)
 
 
 def document_text(path):
@@ -105,6 +112,21 @@ def test_all_generators_emit_readable_expected_text_and_clean_metadata(tmp_path)
                 output_path=str(tmp_path / "protocol.docx"),
             ),
             ["ПРОТОКОЛ", "Подготовить инвариантный отчет."],
+        ),
+        (
+            polozheniya_generate.create_polozhenie(
+                unit_type="отдел",
+                unit_name="проверки инвариантов",
+                parent_unit_name="Управления контроля",
+                subordination="начальника Управления контроля",
+                head_appointment="начальника Управления контроля",
+                head_reports_to="начальнику Управления контроля",
+                goals=["Обеспечение проверки инвариантов."],
+                tasks=["Организация проверки документов."],
+                functions=["Проверка инвариантов документов."],
+                output_path=str(tmp_path / "polozheniya.docx"),
+            ),
+            ["ПОЛОЖЕНИЕ", "Проверка инвариантов документов."],
         ),
     ]
 
