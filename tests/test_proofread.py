@@ -128,3 +128,45 @@ def test_review_without_comments_keeps_only_tracked_changes(tmp_path):
         settings = etree.fromstring(archive.read("word/settings.xml"))
     assert settings.find(W + "trackChanges") is not None
     assert proofread._default_review_dst(src).endswith(" (с правками).docx")
+
+
+def test_review_preflight_does_not_write_invalid_output(tmp_path):
+    proofread = _load_proofread()
+    src = tmp_path / "input.docx"
+    dst = tmp_path / "output.docx"
+    edits_path = tmp_path / "edits.json"
+    doc = Document()
+    doc.add_paragraph("Исходный текст.")
+    doc.save(src)
+    _write_edits(edits_path, [{"block": 1, "old": "Нет такого", "new": "Замена"}])
+
+    assert proofread.cmd_review(src, dst, edits_path) == 1
+    assert not dst.exists()
+
+
+def test_review_target_expansion_indexes_paragraph_text(monkeypatch):
+    proofread = _load_proofread()
+    paragraphs = []
+    for index in range(200):
+        paragraph = etree.Element(W + "p")
+        run = etree.SubElement(paragraph, W + "r")
+        text = etree.SubElement(run, W + "t")
+        text.text = f"Повтор {index % 100}"
+        paragraphs.append(paragraph)
+    targets = [
+        (index, {"all_duplicates": True}, paragraphs[index]) for index in range(50)
+    ]
+
+    original_ptext = proofread._ptext
+    calls = 0
+
+    def counted_ptext(paragraph):
+        nonlocal calls
+        calls += 1
+        return original_ptext(paragraph)
+
+    monkeypatch.setattr(proofread, "_ptext", counted_ptext)
+    expanded = proofread._review_targets(targets, paragraphs)
+
+    assert len(expanded) == 100
+    assert calls <= len(paragraphs) + len(targets)

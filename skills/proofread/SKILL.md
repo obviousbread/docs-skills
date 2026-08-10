@@ -78,17 +78,19 @@ description: >-
    `"all_duplicates": false`; в остальных случаях оставлять значение по
    умолчанию `true`. Не допускать пересекающихся правок в одном абзаце.
 
-5. Выполнить preflight и устранить все `NOT FOUND`, `AMBIGUOUS`, `overlaps`,
-   `old == new`:
-
-   ```bash
-   python3 .agents/skills/proofread/scripts/redline_docx.py check "ВХОД.docx" --edits edits.json
-   ```
-
-6. Применить режим рецензирования:
+5. Применить режим рецензирования:
 
    ```bash
    python3 .agents/skills/proofread/scripts/redline_docx.py review "ВХОД.docx" "ВЫХОД.docx" --edits edits.json
+   ```
+
+   `review` сначала выполняет preflight и не записывает выходной файл при
+   `NOT FOUND`, `AMBIGUOUS`, `overlaps`, `old == new` и других ошибках.
+   Устранить все найденные проблемы и повторить команду. Отдельный `check`
+   использовать только когда нужен диагностический прогон без записи DOCX:
+
+   ```bash
+   python3 .agents/skills/proofread/scripts/redline_docx.py check "ВХОД.docx" --edits edits.json
    ```
 
    `review` всегда создаёт tracked changes и выделяет их жёлтым. Нативный
@@ -96,7 +98,7 @@ description: >-
    `apply` оставлен для совместимости и создаёт обычные tracked changes без
    жёлтого выделения и комментариев.
 
-7. Проверить структуру:
+6. Проверить структуру:
 
    ```bash
    python3 .agents/skills/proofread/scripts/redline_docx.py audit "ВЫХОД.docx"
@@ -106,12 +108,12 @@ description: >-
    `revision_runs` равно `yellow_runs`, а количества комментариев и трёх видов
    якорей совпадают. Нулевое количество комментариев допустимо.
 
-8. Использовать skill `documents` для финального render → PNG. Просмотреть
+7. Использовать skill `documents` для финального render → PNG. Просмотреть
    каждую страницу при 100 %. После любой последующей OOXML-правки повторить
    render. Проверить отсутствие обрезки, наложений, повреждённых таблиц,
    пропавших символов, смещения колонтитулов и изменения числа страниц.
 
-9. Вернуть только итоговый DOCX. Кратко указать число содержательных
+8. Вернуть только итоговый DOCX. Кратко указать число содержательных
    комментариев, включая ноль, и факт постраничной проверки. Не отдавать
    `edits.json`, PDF и PNG без запроса.
 
