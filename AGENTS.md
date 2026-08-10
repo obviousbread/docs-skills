@@ -213,3 +213,4 @@ When the user corrects your approach, append a one-line rule here before ending 
 - Keep each skill independently installable through Vercel Skills; do not add shared runtime dependencies or a second user-context store beside `knowledge_base_path`.
 - In proofreading, expose existing soft hyphens before treating visually joined words as missing-space errors; record every edit with tracked changes, but comment only on ambiguous or non-obvious corrections.
 - When promoting a locally installed skill into `docs-skills`, implement and release it from `~/GitHub/docs-skills`; treat installed copies only as source material, never as the release target.
+- Before proposing a release number or distribution workflow, inspect the current tags and this repository's README/AGENTS; do not rely on cached release information.

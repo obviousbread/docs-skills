@@ -5,7 +5,7 @@
 <h1 align="center">docs</h1>
 
 <p align="center">
-  Agent skills for generating official Russian administrative documents in <code>.docx</code> format.
+  Agent skills for official Russian administrative documents and related working data.
 </p>
 
 <p align="center">
@@ -21,6 +21,7 @@
 - `docs-di` — job descriptions.
 - `docs-polozheniya` — standalone organizational-unit regulations.
 - `docs-protocol` — meeting minutes.
+- `docs-staff-list` — consolidation of staff `.xls`/`.xlsx` files into one normalized workbook.
 - `proofread` — DOCX proofreading with tracked changes and selective comments.
 
 ## Install
@@ -59,7 +60,7 @@ python3 -m pytest tests
 npx skills add . --list
 ```
 
-Requirements: Python 3, `python-docx`, and `openpyxl`.
+Requirements: Python 3, `python-docx`, and `openpyxl`. `docs-staff-list` also requires `pandas` and `xlrd` (the latter for `.xls`).
 
 ## License
 
