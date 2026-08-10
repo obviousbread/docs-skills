@@ -12,7 +12,7 @@ import os
 import shutil
 import warnings as _warnings
 import re as _re
-from datetime import date
+from datetime import date, datetime
 from difflib import get_close_matches
 
 from docx import Document
@@ -62,15 +62,44 @@ def _load_org_details():
     return config
 
 
-def _load_staff():
-    """Загрузить штатный список из staff_file (xlsx).
+def _resolve_staff_file(path):
+    """Разрешить staff_file как .xlsx или каталог с датированными сводными."""
+    path = os.path.expanduser(path or "")
+    if os.path.isfile(path):
+        return path
+    if not os.path.isdir(path):
+        return ""
+
+    dated = []
+    for entry in os.scandir(path):
+        if not entry.is_dir():
+            continue
+        for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
+            try:
+                dated.append((datetime.strptime(entry.name, fmt), entry.path))
+                break
+            except ValueError:
+                pass
+    folder = max(dated, default=(None, path), key=lambda item: item[0] or datetime.min)[1]
+    files = [
+        entry.path for entry in os.scandir(folder)
+        if entry.is_file() and entry.name.lower().endswith((".xlsx", ".xlsm"))
+    ]
+    consolidated = [p for p in files if "сводн" in os.path.basename(p).lower()]
+    candidates = consolidated or files
+    return max(candidates, key=os.path.getmtime) if candidates else ""
+
+
+def _load_staff(path=None):
+    """Загрузить штатный список из .xlsx или каталога staff_file.
 
     Возвращает list[{"lastname", "initials", "position"}].
     При отсутствии staff_file возвращает [] (сверка станет no-op).
     """
-    cfg = _load_org_details()
-    path = os.path.expanduser(cfg.get("staff_file", "") or "")
-    if not path or not os.path.exists(path):
+    if path is None:
+        path = _load_org_details().get("staff_file", "")
+    path = _resolve_staff_file(path)
+    if not path:
         return []
     try:
         from openpyxl import load_workbook
@@ -79,36 +108,51 @@ def _load_staff():
     wb = load_workbook(path, read_only=True, data_only=True)
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
+    wb.close()
     if not rows:
         return []
-    header = [str(c or "").strip().lower() for c in rows[0]]
-    def idx(name_options):
-        for opt in name_options:
-            if opt in header:
-                return header.index(opt)
-        return None
-    i_fio = idx(["фио", "ф.и.о.", "сотрудник"])
-    i_pos = idx(["должность"])
-    if i_fio is None:
+
+    header_row = i_fio = i_last = i_first = i_middle = i_pos = None
+    for row_number, row in enumerate(rows[:15]):
+        header = [str(c or "").strip().lower() for c in row]
+
+        def idx(name_options):
+            for opt in name_options:
+                if opt in header:
+                    return header.index(opt)
+            return None
+
+        i_fio = idx(["фио", "ф.и.о.", "сотрудник"])
+        i_last = idx(["фамилия"])
+        i_first = idx(["имя"])
+        i_middle = idx(["отчество"])
+        i_pos = idx(["должность"])
+        if i_fio is not None or (i_last is not None and i_first is not None):
+            header_row = row_number
+            break
+    if header_row is None:
         return []
+
     out = []
-    for row in rows[1:]:
-        cell = row[i_fio] if i_fio < len(row) else None
-        if not cell:
-            continue
-        s = str(cell).strip()
-        # «Фамилия Имя Отчество» или «Фамилия И.О.»
-        parts = s.split()
-        if len(parts) >= 2:
+    for row in rows[header_row + 1:]:
+        if i_fio is not None:
+            cell = row[i_fio] if i_fio < len(row) else None
+            parts = str(cell or "").strip().split()
+            if len(parts) < 2:
+                continue
             lastname = parts[0]
-            if len(parts) == 2 and "." in parts[1]:
-                initials = parts[1]
-            else:
-                initials = ".".join(p[0] for p in parts[1:3]) + "."
-            position = ""
-            if i_pos is not None and i_pos < len(row) and row[i_pos]:
-                position = str(row[i_pos]).strip().lower()
-            out.append({"lastname": lastname, "initials": initials, "position": position})
+            initials = parts[1] if len(parts) == 2 and "." in parts[1] else ".".join(p[0] for p in parts[1:3]) + "."
+        else:
+            lastname = str(row[i_last] or "").strip() if i_last < len(row) else ""
+            first = str(row[i_first] or "").strip() if i_first < len(row) else ""
+            middle = str(row[i_middle] or "").strip() if i_middle is not None and i_middle < len(row) else ""
+            if not lastname or not first:
+                continue
+            initials = first[0] + "." + (middle[0] + "." if middle else "")
+        position = ""
+        if i_pos is not None and i_pos < len(row) and row[i_pos]:
+            position = str(row[i_pos]).strip().lower()
+        out.append({"lastname": lastname, "initials": initials, "position": position})
     return out
 
 
@@ -120,7 +164,7 @@ def _verify_fios(chair, attendees, items, staff=None):
             raise ValueError(
                 "Не удалось загрузить штатный список для сверки ФИО. "
                 "Проверьте поле «staff_file» в ~/.docs-plugin/org_details.md "
-                "(файл должен существовать и содержать колонки «Фамилия», «Имя», «Отчество», «Должность»)."
+                "(укажите .xlsx или каталог с датированными сводными списками)."
             )
     if not staff:
         return  # явный пустой аргумент = опциональный пропуск (тесты)

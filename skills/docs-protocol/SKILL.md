@@ -70,7 +70,7 @@ description: "Use when the user needs a meeting minutes document (протоко
 
 ### Шаг 5. Staff-сверка
 
-Прочитай `staff-rules.md`. Сверь все ФИО (`chair`, `attendees`, `responsible` всех `items`) с `staff_file` через openpyxl. Логика реализована в `generate.py:_verify_fios` (вызывается автоматически при `create_protocol`). На неизвестном ФИО — `ValueError` с fuzzy-кандидатами top-3..5.
+Прочитай `staff-rules.md`. Сверь все ФИО (`chair`, `attendees`, `responsible` всех `items`) с `staff_file` через openpyxl. `staff_file` может указывать на `.xlsx` или каталог с датированными сводными. Логика реализована в `generate.py:_verify_fios` (вызывается автоматически при `create_protocol`). На неизвестном ФИО — `ValueError` с fuzzy-кандидатами top-3..5.
 
 Если у пользователя опечатка — предложи кандидатов и попроси подтвердить замену. Только после исправления продолжай.
 
