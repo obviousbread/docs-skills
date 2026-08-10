@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0
+
 ### feat
 
 - Added the independently installable `docs-staff-list` skill for probing and consolidating heterogeneous staff `.xls`/`.xlsx` exports into one verified six-column workbook.
