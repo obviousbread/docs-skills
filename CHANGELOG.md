@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.6.0
+
+### feat
+
+- Added the independently installable `docs-polozheniya` skill for standalone organizational-unit regulations with their own approval block, seven-section body, sign-off table, and acquaintance sheet.
+- Added a self-contained DOCX generator for department and directorate regulations with explicit input validation, config-driven organization details, clean document metadata, and non-overwriting output paths.
+
+### config
+
+- Extended `docs-init` with organization and leader grammatical forms plus `output_dir_polozheniya`; clarified the routing boundary between `docs-polozheniya`, `docs-di`, and `docs-ord`.
+
+### test
+
+- Added generator coverage for both unit types, validation, output collision handling, portable skill discovery, and generated DOCX invariants.
+
 ## 0.5.0
 
 ### feat
