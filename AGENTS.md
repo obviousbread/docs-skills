@@ -211,3 +211,4 @@ When the user corrects your approach, append a one-line rule here before ending 
 
 - Keep the runtime depersonalized: never hardcode personal/org data (ФИО, document author, org requisites, track-changes revision author) in a skill or runtime. Read all such values from the `~/.docs-plugin/org_details.md` config; if a value is absent, use a depersonalized default. Before every commit and release, run the personal-data gate (see Releases step 0) and block on any real identifying data. New config key for review mode: `revision_author` (author shown on tracked revisions).
 - Keep each skill independently installable through Vercel Skills; do not add shared runtime dependencies or a second user-context store beside `knowledge_base_path`.
+- In proofreading, expose existing soft hyphens before treating visually joined words as missing-space errors; record every edit with tracked changes, but comment only on ambiguous or non-obvious corrections.

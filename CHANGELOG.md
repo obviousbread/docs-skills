@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 0.5.0
+
+### feat
+
+- Added the independently installable `proofread` skill for Russian DOCX proofreading with preserved originals, native Word tracked changes, yellow revision highlighting, duplicate-paragraph handling, structural audits, and mandatory visual QA.
+- Added explicit soft-hyphen detection to text extraction: OOXML and Unicode soft hyphens are displayed as `⟨SHY⟩`, so intentional discretionary breaks are not mistaken for missing spaces.
+
+### fix
+
+- `proofread`: Word comments are now selective. Mechanical corrections such as spaces, punctuation, case, quotation marks, dashes, and obvious typos remain tracked and highlighted but no longer receive boilerplate comments; comments are reserved for ambiguous, semantic, factual, or otherwise non-obvious edits.
+- `proofread`: review output remains a tracked-changes copy even when no comments are needed, and structural audit now accepts a valid zero-comment document.
+
+### test
+
+- Added regression coverage for OOXML and Unicode soft-hyphen visibility, selective comments, zero-comment review files, yellow revision highlighting, and Track Changes activation.
+
 ## 0.4.0
 
 ### breaking

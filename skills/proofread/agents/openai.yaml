@@ -1,0 +1,7 @@
+interface:
+  display_name: "Вычитка DOCX"
+  short_description: "Правки Word с выборочными комментариями"
+  default_prompt: "Используй $proofread, чтобы вычитать документ, сохранить правки в режиме рецензирования и комментировать только неоднозначные или неочевидные исправления."
+
+policy:
+  allow_implicit_invocation: true
