@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.8.0
+
+### breaking
+
+- `proofread`: standard `finish` now completes after preflight and structural audit without mandatory LibreOffice/Poppler rendering; JSON reports `visual_check: false` and `null` for visual-only fields.
+
+### feat
+
+- `proofread`: added `--visual` to retain comparative page rendering for complex layouts or explicit visual review requests.
+
+### test
+
+- Added regression coverage for both the default fast path and the opt-in visual path, including atomic output replacement.
+
 ## 0.7.2
 
 ### fix

@@ -68,7 +68,7 @@ def test_intake_without_projects_contract_leaves_source_in_place(tmp_path):
     assert source.is_file()
 
 
-def test_finish_uses_edit_author_and_replaces_output_after_qa(
+def test_finish_runs_visual_check_before_replacing_output(
     tmp_path, monkeypatch, capsys
 ):
     workflow = _load_workflow()
@@ -86,17 +86,44 @@ def test_finish_uses_edit_author_and_replaces_output_after_qa(
 
     monkeypatch.setattr(workflow, "render_pair", fake_render)
     workflow.finish(SimpleNamespace(
-        input=str(source), edits=str(edits), output=str(output)
+        input=str(source), edits=str(edits), output=str(output), visual=True
     ))
 
     result = json.loads(capsys.readouterr().out)
     assert output.is_file()
+    assert result["visual_check"] is True
+    assert result["pages"] == {"source": 1, "output": 1}
     assert result["edits"] == 1
     revisions = re.search(
         r"revision_runs=(\d+) yellow_runs=(\d+)", result["audit_result"]
     )
     assert revisions and revisions.group(1) == revisions.group(2) != "0"
     assert not list(tmp_path.glob(".*.proofread-fast.tmp.docx"))
+
+
+def test_finish_skips_visual_check_by_default(tmp_path, monkeypatch, capsys):
+    workflow = _load_workflow()
+    source = tmp_path / "input.docx"
+    output = tmp_path / "output.docx"
+    edits = tmp_path / "edits.json"
+    _docx(source)
+    _edits(edits)
+
+    def unexpected_render(*_args):
+        raise AssertionError("render_pair must not run without --visual")
+
+    monkeypatch.setattr(workflow, "render_pair", unexpected_render)
+    workflow.finish(SimpleNamespace(
+        input=str(source), edits=str(edits), output=str(output), visual=False
+    ))
+
+    result = json.loads(capsys.readouterr().out)
+    assert output.is_file()
+    assert result["visual_check"] is False
+    assert result["qa_output"] is None
+    assert result["pages"] is None
+    assert result["page_count_changed"] is None
+    assert result["seconds"]["render"] == 0.0
 
 
 def test_finish_preserves_existing_output_when_preflight_fails(tmp_path):
@@ -110,7 +137,7 @@ def test_finish_preserves_existing_output_when_preflight_fails(tmp_path):
 
     with pytest.raises(SystemExit, match="output not written"):
         workflow.finish(SimpleNamespace(
-            input=str(source), edits=str(edits), output=str(output)
+            input=str(source), edits=str(edits), output=str(output), visual=False
         ))
 
     assert output.read_bytes() == b"existing result"

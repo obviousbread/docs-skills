@@ -194,9 +194,13 @@ def finish(args):
         if not comments_match:
             fail("Unexpected audit result: " + audit)
 
-        phase = time.perf_counter()
-        qa, pages = render_pair(source, temporary_output, output)
-        render_seconds = time.perf_counter() - phase
+        qa = None
+        pages = None
+        render_seconds = 0.0
+        if args.visual:
+            phase = time.perf_counter()
+            qa, pages = render_pair(source, temporary_output, output)
+            render_seconds = time.perf_counter() - phase
         temporary_output.replace(output)
         review = review.replace(str(temporary_output), str(output))
     except BaseException:
@@ -205,12 +209,15 @@ def finish(args):
 
     print(json.dumps({
         "output": str(output),
-        "qa_output": str(qa),
+        "visual_check": args.visual,
+        "qa_output": str(qa) if qa else None,
         "edits": edit_count,
         "large_edits_over_120_chars": large_edits,
         "comments": int(comments_match.group(1)),
         "pages": pages,
-        "page_count_changed": pages["source"] != pages["output"],
+        "page_count_changed": (
+            pages["source"] != pages["output"] if pages else None
+        ),
         "seconds": {
             "review": round(review_seconds, 3),
             "audit": round(audit_seconds, 3),
@@ -236,6 +243,7 @@ def main():
     finish_parser.add_argument("input")
     finish_parser.add_argument("--edits", required=True)
     finish_parser.add_argument("--output")
+    finish_parser.add_argument("--visual", action="store_true")
     finish_parser.set_defaults(func=finish)
 
     args = parser.parse_args()
