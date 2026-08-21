@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.8.2
+
+### fix
+
+- `proofread`: preserve compact Russian abbreviations such as `в т.ч.` without inserting tracked spaces.
+
 ## 0.8.1
 
 ### fix
