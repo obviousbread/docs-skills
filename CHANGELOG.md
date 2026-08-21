@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.8.1
+
+### fix
+
+- `proofread`: use en dashes or hyphens by context, replace `Ё/ё` with `Е/е`, and format personal initials without spaces.
+
 ## 0.8.0
 
 ### breaking
