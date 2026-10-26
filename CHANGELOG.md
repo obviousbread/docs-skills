@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.9.0 - 2026-10-26
+
 ### Added
 
 - `docs-staff-list`: preserve the source column order and additional personal-data fields, combine different input schemas, and flatten grouped headers without losing values or leading zeros.
