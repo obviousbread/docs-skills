@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- `docs-staff-list`: preserve the source column order and additional personal-data fields, combine different input schemas, and flatten grouped headers without losing values or leading zeros.
+
+### Changed
+
+- `docs-staff-list`: use a single header row at the top of the table, sequential numbering, Arial 14 pt, thin black borders, visible gridlines, no fills, and filters covering the full table.
+- `docs-staff-list`: retain the source list date and use the latest user-edited workbook when supplementing records; match supplements by identifiers with name and birth-date checks.
+
+### Fixed
+
+- `docs-staff-list`: leave missing departments and existing branch cells empty instead of carrying forward another employee's department or guessing from a consolidated filename; remove short employment suffixes from names without a patronymic.
+
 ## 0.8.2
 
 ### fix

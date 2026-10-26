@@ -215,3 +215,4 @@ When the user corrects your approach, append a one-line rule here before ending 
 - In proofreading output, never use `—` or `Ё/ё`; prefer `–` or `-` by context, format personal initials without spaces (`В.И. Фамилия`), and keep compact abbreviations such as `в т.ч.` free of internal spaces.
 - When promoting a locally installed skill into `docs-skills`, implement and release it from `~/GitHub/docs-skills`; treat installed copies only as source material, never as the release target.
 - Before proposing a release number or distribution workflow, inspect the current tags and this repository's README/AGENTS; do not rely on cached release information.
+- In staff-list normalization, retain richer source columns and their values, flatten the header into one row, and use the source list date rather than the processing date.
