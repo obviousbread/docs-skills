@@ -3,7 +3,8 @@
 Нормализация и консолидация списков сотрудников из кадровых выгрузок в единый .xlsx.
 
 Главная идея: на входе разнородные .xls/.xlsx от филиалов (разная структура,
-разные позиции колонок), на выходе — один сводный файл из 6 колонок:
+разные позиции колонок), на выходе — один сводный файл с нумерацией,
+однострочной шапкой и всеми исходными полями. Минимальный набор:
 
     № | Сотрудник | Дата рождения | Должность | Подразделение | Филиал
 
@@ -40,11 +41,13 @@
 
 import argparse
 import glob
+import math
 import os
 import re
 import sys
 import time
 from collections import Counter
+from datetime import date, datetime
 
 try:
     import pandas as pd
@@ -53,7 +56,8 @@ except ImportError:
 
 try:
     from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from openpyxl.styles import Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
 except ImportError:
     sys.exit("openpyxl не установлен. Установите: pip install openpyxl")
 
@@ -67,6 +71,7 @@ warnings.filterwarnings("ignore")
 
 KNOWN_FIO_PARTICLES = {"оглы", "кызы", "огли", "угли", "де", "фон", "ван"}
 fio_changes = []  # (до, после) — для проверки человеком
+STAFF_FIELDS = ["Сотрудник", "Дата рождения", "Должность", "Подразделение", "Филиал"]
 
 STATUSES = [
     "Основное место работы, Работа",
@@ -130,6 +135,8 @@ def clean_fio(fio: str) -> str:
     def _is_service_paren(m):
         return m.group(0) if m.group(1).strip().lower() in KNOWN_FIO_PARTICLES else ""
     fio = re.sub(r"\s*\(([^)]*)\)", _is_service_paren, fio)
+    # Короткие ФИО тоже могут заканчиваться служебными пометками.
+    fio = re.sub(r"\s+(?:(?:осн|внешн?|совм|стд)\.?\s*)+$", "", fio, flags=re.IGNORECASE)
 
     # 3: обрезать лишние слова после 3 базовых (Фамилия Имя Отчество)
     words = fio.split()
@@ -209,7 +216,8 @@ def _is_int(v) -> bool:
 # ---------------------------------------------------------------------------
 
 def load_df(filepath: str):
-    return pd.read_excel(filepath, header=None)
+    # Не превращать текстовые серии, номера и коды с нулями в числа.
+    return pd.read_excel(filepath, header=None, dtype=object)
 
 
 def _cell(df, i, c):
@@ -283,7 +291,7 @@ def detect_table_columns(df):
     for i in range(min(18, len(df))):
         vals = [_cell(df, i, c).lower() for c in range(len(df.columns))]
         has_fio = any(v == "сотрудник" or v == "фио" or v.startswith("сотрудник") or "ф.и.о" in v
-                      for v in vals if v)
+                      for v in vals if v) or ("фамилия" in vals and "имя" in vals)
         has_other = any("должн" in v or "позиц" in v or "рожд" in v or
                         "подразд" in v or "отделение" in v for v in vals if v)
         if has_fio and has_other:
@@ -301,17 +309,57 @@ def detect_table_columns(df):
             cm.setdefault("num", c)
         elif v == "сотрудник" or v == "фио" or v.startswith("сотрудник") or "ф.и.о" in v:
             cm.setdefault("fio", c)
+        elif v in ("фамилия", "имя", "отчество"):
+            cm[{"фамилия": "last", "имя": "first", "отчество": "middle"}[v]] = c
         elif "должн" in v or v == "позиция":
             cm.setdefault("pos", c)
-        elif "рожд" in v:
+        elif "дата рожд" in v or "год рожд" in v:
             cm.setdefault("dob", c)
             if "год рожд" in v:
                 cm["dob_year_only"] = True
-        elif "подразд" in v or "отделение" in v:
+        elif v in ("подразделение", "отделение", "структурное подразделение"):
             cm.setdefault("dept", c)
         elif "филиал" in v:
             cm.setdefault("branch", c)
     return header, cm
+
+
+def table_layout(df, header, cm):
+    """Свести шапку к листовым заголовкам, сохранив порядок и дополнительные поля."""
+    canonical = {"fio": "Сотрудник", "dob": "Дата рождения", "pos": "Должность",
+                 "dept": "Подразделение", "branch": "Филиал", "num": "№"}
+    core = {cm[k]: v for k, v in canonical.items() if k in cm}
+    next_row = header + 1
+    # Во втором ярусе нет ФИО/даты/должности, но есть подзаголовки вне основных полей.
+    second = header >= 0 and next_row < len(df) and \
+        not any(_cell(df, next_row, c) for c in core) and \
+        any(_cell(df, next_row, c) for c in range(len(df.columns)) if c not in core)
+    start = header + 1 + int(second)
+    labels = []
+    group = ""
+    for c in range(len(df.columns)):
+        main = _cell(df, header, c) if header >= 0 else ""
+        sub = _cell(df, next_row, c) if second else ""
+        if main:
+            group = main
+        label = core.get(c) or sub or main
+        if not label and any(_cell(df, r, c) for r in range(start, len(df))):
+            label = f"Колонка {c + 1}"
+        if label:
+            labels.append((c, label, group))
+    counts = Counter(label for _, label, _ in labels)
+    layout, used = [], set()
+    for c, label, group in labels:
+        if label == "№":
+            continue
+        if counts[label] > 1 and group and group != label:
+            label = f"{group}: {label}"
+        base, suffix = label, 2
+        while label in used:
+            label = f"{base} ({suffix})"; suffix += 1
+        used.add(label)
+        layout.append((c, label))
+    return layout, start
 
 
 # ---------------------------------------------------------------------------
@@ -332,10 +380,11 @@ def parse_table(df):
     pos_c, dob_c = cm.get("pos"), cm.get("dob")
     dept_c, branch_c = cm.get("dept"), cm.get("branch")
     year_only = cm.get("dob_year_only", False)
-    dept_as_col = dept_c is not None
+    dept_as_col = dept_c is not None or "num" not in cm
+    layout, start = table_layout(df, header, cm)
 
     rows, current_dept, skipped = [], "", 0
-    for i in range(header + 1, len(df)):
+    for i in range(start, len(df)):
         fio_raw = _cell(df, i, fio_c)
         if dept_as_col:
             if not fio_raw:
@@ -343,36 +392,65 @@ def parse_table(df):
                 if _cell(df, i, pos_c):
                     skipped += 1
                 continue
-            d = _cell(df, i, dept_c)
-            if d:
-                current_dept = d
-            rows.append({
+            row = {label: ("" if pd.isna(df.iat[i, c]) else df.iat[i, c])
+                   for c, label in layout}
+            row.update({
                 "Сотрудник": clean_fio_tracked(fio_raw),
                 "Дата рождения": format_date(df.iat[i, dob_c] if dob_c is not None and dob_c < len(df.columns) else "", year_only),
-                "Должность": _cell(df, i, pos_c),
-                "Подразделение": current_dept,
-                "Филиал": _cell(df, i, branch_c) if branch_c is not None else "",
+                "Должность": row.get("Должность", ""),
+                "Подразделение": row.get("Подразделение", ""),
+                "Филиал": row.get("Филиал", ""),
             })
+            rows.append(row)
         else:
             num_val = _cell(df, i, num_c)
             if _is_int(num_val) and fio_raw:
-                rows.append({
+                row = {label: ("" if pd.isna(df.iat[i, c]) else df.iat[i, c])
+                       for c, label in layout}
+                row.update({
                     "Сотрудник": clean_fio_tracked(fio_raw),
                     "Дата рождения": format_date(df.iat[i, dob_c] if dob_c is not None and dob_c < len(df.columns) else "", year_only),
-                    "Должность": _cell(df, i, pos_c),
+                    "Должность": row.get("Должность", ""),
                     "Подразделение": current_dept,
-                    "Филиал": "",
+                    "Филиал": row.get("Филиал", ""),
                 })
+                rows.append(row)
             else:
                 c0 = _cell(df, i, 0)
                 # строка-разделитель подразделения (текст, не число, не итог)
                 if c0 and not _is_int(c0) and not c0.lower().startswith("всего"):
                     current_dept = re.sub(r"\s+", " ", c0).strip()
-    return rows, {"has_branch": branch_c is not None, "skipped_continuation": skipped}
+    columns = [label for _, label in layout]
+    columns.extend(k for k in STAFF_FIELDS if k not in columns)
+    return rows, {"has_branch": branch_c is not None, "skipped_continuation": skipped,
+                  "columns": columns}
 
 
 def parse_split_fio(df):
     """ФИО разнесено по Фамилия/Имя/Отчество. Подразделения — строки-разделители."""
+    header, cm = detect_table_columns(df)
+    if header is not None and "last" in cm and "first" in cm:
+        layout, start = table_layout(df, header, cm)
+        rows = []
+        for i in range(start, len(df)):
+            if not _cell(df, i, cm["last"]) or not _cell(df, i, cm["first"]):
+                continue
+            row = {label: ("" if pd.isna(df.iat[i, c]) else df.iat[i, c])
+                   for c, label in layout}
+            full = " ".join(filter(None, [_cell(df, i, cm.get(k))
+                                           for k in ("last", "first", "middle")]))
+            row.update({
+                "Сотрудник": clean_fio_tracked(full),
+                "Дата рождения": format_date(_cell(df, i, cm.get("dob")), cm.get("dob_year_only", False)),
+                "Должность": row.get("Должность", ""),
+                "Подразделение": row.get("Подразделение", ""),
+                "Филиал": row.get("Филиал", ""),
+            })
+            rows.append(row)
+        columns = [label for _, label in layout]
+        columns.extend(k for k in STAFF_FIELDS if k not in columns)
+        return rows, {"has_branch": "branch" in cm, "skipped_continuation": 0,
+                      "columns": columns}
     rows, current_dept = [], ""
     for i in range(len(df)):
         c0 = _cell(df, i, 0)
@@ -537,45 +615,52 @@ def parse_file(filepath, fmt=None, year_only=False, date_col=None):
 # Запись .xlsx
 # ---------------------------------------------------------------------------
 
-THIN = Border(*([Side(style="thin")] * 4))
+THIN = Border(*([Side(style="thin", color="000000")] * 4))
+COLUMN_WIDTHS = {
+    "№": 7, "Сотрудник": 70, "Дата рождения": 28, "СНИЛС": 19,
+    "Должность": 86, "Подразделение": 116, "Филиал": 20, "Вид занятости": 34,
+    "Вид": 53, "Серия": 14, "Номер": 14, "Дата выдачи": 21,
+    "Кем выдано": 159, "Код подразделения": 29, "Место рождения": 80,
+    "Физическое лицо.Мобильный телефон": 40, "Адрес места проживания": 190,
+    "Страна гражданства": 25, "Состояние": 65,
+}
 
 
-def write_consolidated_xlsx(out_path, title, all_rows):
+def write_consolidated_xlsx(out_path, title, all_rows, columns=None):
     wb = Workbook(); ws = wb.active; ws.title = "Сотрудники"
-    hf = Font(name="Arial", bold=True, size=11)
-    fill = PatternFill("solid", fgColor="D9E1F2")
-    hc = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    df_ = Font(name="Arial", size=10)
+    wb.properties.title = title
+    hf = Font(name="Arial", bold=True, size=14, color="000000")
+    df_ = Font(name="Arial", size=14, color="000000")
     left = Alignment(horizontal="left", vertical="center", wrap_text=True)
-    center = Alignment(horizontal="center", vertical="center")
+    fields = list(columns) if columns is not None else list(dict.fromkeys(
+        k for emp in all_rows for k in emp if k != "№"))
+    fields.extend(k for k in STAFF_FIELDS if k not in fields)
+    headers = ["№"] + [k for k in fields if k != "№"]
+    for ci, h in enumerate(headers, 1):
+        c = ws.cell(row=1, column=ci, value=h)
+        c.font, c.alignment, c.border = hf, left, THIN
+        ws.column_dimensions[get_column_letter(ci)].width = COLUMN_WIDTHS.get(h, 35)
+    ws.row_dimensions[1].height = 67
 
-    ws.merge_cells("A1:F1")
-    ws["A1"] = title
-    ws["A1"].font = Font(name="Arial", bold=True, size=13)
-    ws["A1"].alignment = center
-
-    for ci, h in enumerate(["№", "Сотрудник", "Дата рождения", "Должность",
-                            "Подразделение", "Филиал"], 1):
-        c = ws.cell(row=3, column=ci, value=h)
-        c.font, c.fill, c.alignment, c.border = hf, fill, hc, THIN
-
-    for ri, emp in enumerate(all_rows):
-        r = 4 + ri
-        ws.cell(row=r, column=1, value=ri + 1)
-        ws.cell(row=r, column=2, value=emp["Сотрудник"])
-        ws.cell(row=r, column=3, value=emp["Дата рождения"])
-        ws.cell(row=r, column=4, value=emp["Должность"])
-        ws.cell(row=r, column=5, value=emp["Подразделение"])
-        ws.cell(row=r, column=6, value=emp.get("Филиал", ""))
-        for ci in range(1, 7):
-            cell = ws.cell(row=r, column=ci)
+    for ri, emp in enumerate(all_rows, 2):
+        lines = 1
+        for ci, key in enumerate(headers, 1):
+            value = ri - 1 if key == "№" else emp.get(key, "")
+            ws.cell(row=ri, column=ci, value=value)
+            if isinstance(value, str):
+                # Служебные значения и идентификаторы не должны стать формулами.
+                ws.cell(row=ri, column=ci).data_type = "s"
+            if isinstance(value, (datetime, date)):
+                ws.cell(row=ri, column=ci).number_format = "dd.mm.yyyy"
+            cell = ws.cell(row=ri, column=ci)
             cell.font, cell.border = df_, THIN
-            cell.alignment = center if ci in (1, 3) else left
-
-    for col, w in {"A": 6, "B": 38, "C": 16, "D": 45, "E": 50, "F": 30}.items():
-        ws.column_dimensions[col].width = w
-    ws.freeze_panes = "A4"
-    ws.auto_filter.ref = f"A3:F{3 + len(all_rows)}"
+            cell.alignment = left
+            width = COLUMN_WIDTHS.get(key, 35) * 0.7
+            lines = max(lines, sum(max(1, math.ceil(len(s) / width)) for s in str(value or "").split("\n")))
+        ws.row_dimensions[ri].height = min(409, max(24, lines * 18))
+    ws.freeze_panes = "B2"
+    ws.sheet_view.showGridLines = True
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{1 + len(all_rows)}"
     wb.save(out_path)
     return len(all_rows)
 
@@ -589,18 +674,18 @@ def verify_rows(rows, consolidate=False):
     for i, emp in enumerate(rows):
         fio = emp.get("Сотрудник", "")
         if not fio.strip():
-            issues.append(f"  Строка {i + 4}: пустое ФИО")
+            issues.append(f"  Строка {i + 2}: пустое ФИО")
         if re.search(r"Работа|Болезнь|Отпуск|совм", fio, re.IGNORECASE):
-            issues.append(f"  Строка {i + 4}: остаточный статус в ФИО: [{fio}]")
+            issues.append(f"  Строка {i + 2}: остаточный статус в ФИО: [{fio}]")
         base = [w for w in fio.split() if w.lower() not in KNOWN_FIO_PARTICLES]
         if len(base) > 3:
-            issues.append(f"  Строка {i + 4}: >3 слов в ФИО: [{fio}]")
+            issues.append(f"  Строка {i + 2}: >3 слов в ФИО: [{fio}]")
         if not emp.get("Должность", "").strip():
-            issues.append(f"  Строка {i + 4}: пустая должность: {fio}")
+            issues.append(f"  Строка {i + 2}: пустая должность: {fio}")
         if not emp.get("Подразделение", "").strip():
-            issues.append(f"  Строка {i + 4}: пустое подразделение: {fio}")
+            issues.append(f"  Строка {i + 2}: пустое подразделение: {fio}")
         if consolidate and not emp.get("Филиал", "").strip():
-            issues.append(f"  Строка {i + 4}: пустой филиал: {fio}")
+            issues.append(f"  Строка {i + 2}: пустой филиал: {fio}")
     return issues
 
 
@@ -677,7 +762,7 @@ def main():
     year_only = {f.strip() for f in args.year_only.split(";") if f.strip()}
 
     t0 = time.time()
-    all_rows, per_file = [], []
+    all_rows, per_file, all_columns = [], [], []
     for fn in files:
         fp = os.path.join(args.input_dir, fn)
         if not os.path.exists(fp):
@@ -695,7 +780,7 @@ def main():
             for e in rows:
                 e["Филиал"] = branch_map[fn]
             br = branch_map[fn]
-        elif meta["has_branch"] and all(e.get("Филиал", "").strip() for e in rows):
+        elif meta["has_branch"]:
             br = "(из колонки Филиал)"
         else:
             guess = branch_from_filename(fn)
@@ -704,6 +789,7 @@ def main():
                     e["Филиал"] = guess
             br = guess + " (?из имени файла)"
         all_rows.extend(rows)
+        all_columns.extend(k for k in meta.get("columns", STAFF_FIELDS) if k not in all_columns)
         per_file.append((fn, fmt, len(rows), br, meta["skipped_continuation"]))
         print(f"  {fn[:48]:<48} fmt={fmt:<10} строк={len(rows):<5} {round(time.time()-ft,2)}s  → {br}")
 
@@ -727,7 +813,7 @@ def main():
     dups = find_duplicates(all_rows)
     issues = verify_rows(all_rows, consolidate=True)
     out = args.output
-    write_consolidated_xlsx(out, args.title, all_rows)
+    write_consolidated_xlsx(out, args.title, all_rows, all_columns)
     elapsed = time.time() - t0
 
     print_fio_changes()
