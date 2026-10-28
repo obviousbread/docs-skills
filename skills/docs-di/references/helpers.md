@@ -4,6 +4,8 @@
 
 ## Главная функция
 
+`new_document()` отключает `widowControl`, `keepNext`, `keepLines`, `pageBreakBefore` в docDefaults и стилях.
+
 ### `create_di(position_full, position_full_genitive, sections, output_path, author=None, approvers=None, org=None, acquaintance_rows=23)`
 
 Создаёт `.docx` целиком: гриф УТВЕРЖДАЮ → заголовок → 6 разделов → ПРОЕКТ РАЗРАБОТАН → СОГЛАСОВАНО → Лист ознакомления.
