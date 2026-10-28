@@ -39,6 +39,12 @@ ORG_DETAILS_PATH = os.path.expanduser("~/.docs-plugin/org_details.md")
 
 def new_document():
     doc = Document()
+    # Disable pagination defaults and built-in style overrides.
+    for ppr in doc.styles.element.xpath(".//w:pPr"):
+        ppr.get_or_add_widowControl().val = False
+        ppr.get_or_add_keepNext().val = False
+        ppr.get_or_add_keepLines().val = False
+        ppr.get_or_add_pageBreakBefore().val = False
     props = doc.core_properties
     for field in ("author", "last_modified_by", "comments", "title", "subject", "keywords", "category"):
         setattr(props, field, "")

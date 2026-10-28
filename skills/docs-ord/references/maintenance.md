@@ -1,5 +1,7 @@
 # Правило согласованности: generate.py ↔ SKILL.md ↔ review-checklist.md
 
+`new_document()` отключает четыре параметра разбивки абзацев в docDefaults и стилях. Перечень параметров в `SKILL.md`.
+
 **Любое изменение в `generate.py` должно быть отражено в SKILL.md и `review-checklist.md`.**
 
 После каждой правки `generate.py` проверь и при необходимости обнови:

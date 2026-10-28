@@ -1,6 +1,11 @@
 """Generated DOCX invariants that smoke tests alone do not catch."""
 
+from zipfile import ZipFile
+
+import pytest
 from docx import Document
+from docx.oxml import parse_xml
+from docx.oxml.ns import qn
 
 from conftest import (
     di_generate,
@@ -10,6 +15,43 @@ from conftest import (
     polozheniya_generate,
     protocol_generate,
 )
+
+
+PAGINATION_FLAGS = ("widowControl", "keepNext", "keepLines", "pageBreakBefore")
+
+
+def _assert_pagination_disabled(path):
+    with ZipFile(path) as archive:
+        styles = parse_xml(archive.read("word/styles.xml"))
+        defaults = styles.xpath("./w:docDefaults/w:pPrDefault/w:pPr")[0]
+        for flag in PAGINATION_FLAGS:
+            node = defaults.find(qn(f"w:{flag}"))
+            assert node is not None, flag
+            assert node.get(qn("w:val")) == "0"
+        parts = [name for name in archive.namelist() if name in (
+            "word/document.xml", "word/styles.xml", "word/numbering.xml"
+        ) or (name.startswith(("word/header", "word/footer")) and name.endswith(".xml"))]
+        for name in parts:
+            root = parse_xml(archive.read(name))
+            for flag in PAGINATION_FLAGS:
+                for node in root.xpath(f".//w:pPr/w:{flag}"):
+                    assert node.get(qn("w:val")) in {"0", "false", "off"}, (name, flag)
+
+
+@pytest.mark.parametrize("generator", [
+    ord_generate, letter_generate, memo_generate,
+    di_generate, polozheniya_generate, protocol_generate,
+], ids=["ord", "letter", "memo", "di", "polozheniya", "protocol"])
+def test_pagination_defaults_cover_headings_tables_and_headers(generator, tmp_path):
+    doc = generator.new_document()
+    for style in ("Normal", "Heading 1", "List Paragraph"):
+        doc.add_paragraph("Sample paragraph", style)
+    doc.add_table(rows=1, cols=1).cell(0, 0).text = "Sample cell"
+    doc.sections[0].header.paragraphs[0].text = "Sample header"
+    doc.sections[0].footer.paragraphs[0].text = "Sample footer"
+    path = tmp_path / "pagination.docx"
+    doc.save(path)
+    _assert_pagination_disabled(path)
 
 
 def document_text(path):
@@ -135,3 +177,4 @@ def test_all_generators_emit_readable_expected_text_and_clean_metadata(tmp_path)
         for expected in expected_text:
             assert expected in text
         _assert_clean_core_properties(path)
+        _assert_pagination_disabled(path)

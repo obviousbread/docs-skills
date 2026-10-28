@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.9.1 - 2026-10-28
+
+### Fixed
+
+- All six DOCX generators disable widow/orphan control, keep-with-next, keep-lines-together, and page-break-before in document defaults and styles, including heading, table, and header/footer styles.
+
+### Tests
+
+- Verify pagination settings in generated orders, letters, memos, job descriptions, unit regulations, and meeting minutes, including inherited style overrides.
+
 ## 0.9.0 - 2026-10-26
 
 ### Added
