@@ -2,6 +2,9 @@
 
 import os
 
+from docx import Document
+from docx.oxml.ns import qn
+
 from conftest import ord_generate
 
 create_ord = ord_generate.create_ord
@@ -103,6 +106,52 @@ class TestCreateOrdParams:
             output_path=str(tmp_path / "commission.docx"),
         )
         assert os.path.isfile(path)
+
+    def test_regulation_attachments_use_independent_decimal_lists(self, tmp_path):
+        sections = [
+            {
+                "title": "Общие положения",
+                "points": ["Первый пункт.", ("Подпункт.", 2), "Второй пункт."],
+            },
+            {"title": "Задачи", "points": ["Первая задача."]},
+        ]
+        path = create_ord(
+            title="Об утверждении положений",
+            points=["Утвердить положения."],
+            control_person="self",
+            attachments=[
+                {"title": "Положение о комиссии", "type": "polozheniye", "sections": sections},
+                {"title": "Положение о рабочей группе", "type": "polozheniye", "sections": sections},
+            ],
+            output_path=str(tmp_path / "regulations.docx"),
+        )
+        doc = Document(path)
+        expected = [
+            ("Общие положения", 0), ("Первый пункт.", 1), ("Подпункт.", 2),
+            ("Второй пункт.", 1), ("Задачи", 0), ("Первая задача.", 1),
+        ]
+        expected_texts = [text for text, _ in expected]
+        body = [p for p in doc.paragraphs if p.text in expected_texts]
+        assert [p.text for p in body] == expected_texts * 2
+
+        num_ids = []
+        for paragraph, (_, level) in zip(body, expected * 2):
+            num_pr = paragraph._p.pPr.numPr
+            assert num_pr.ilvl.val == level
+            num_ids.append(num_pr.numId.val)
+        first, second = num_ids[0], num_ids[len(expected)]
+        assert first != second
+        assert num_ids == [first] * len(expected) + [second] * len(expected)
+
+        numbering = doc.part.numbering_part.element
+        for num_id in (first, second):
+            num = numbering.num_having_numId(num_id)
+            abstract_id = num.abstractNumId.val
+            levels = numbering.xpath(f'./w:abstractNum[@w:abstractNumId="{abstract_id}"]/w:lvl')
+            assert len(levels) >= 3
+            for level, pattern in zip(levels[:3], ("%1.", "%1.%2.", "%1.%2.%3.")):
+                assert level.find(qn("w:numFmt")).get(qn("w:val")) == "decimal"
+                assert level.find(qn("w:lvlText")).get(qn("w:val")) == pattern
 
     def test_with_notify_persons(self, tmp_path):
         path = create_ord(

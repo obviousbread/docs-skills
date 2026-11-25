@@ -478,31 +478,12 @@ def _list_para(doc, text, level=0, num_id=1, size=14, bold=False,
     return p
 
 
-def _roman(n):
-    """Преобразовать целое число в строку с римской цифрой (I, II, III, ...)."""
-    vals = [
-        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
-        (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
-        (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
-    ]
-    result = ""
-    for value, numeral in vals:
-        while n >= value:
-            result += numeral
-            n -= value
-    return result
-
-
 def _setup_polozheniye_numbering(doc):
     """Нумерация для Положения (многоуровневый список Word).
 
-    ilvl=0 → «I.», «II.», ... – заголовки разделов (upperRoman, жирный)
-    ilvl=1 → «1.1.», «1.2.», ... – пункты (decimal + isLgl)
+    ilvl=0 → «1.», «2.», ...    – заголовки разделов (decimal, жирный)
+    ilvl=1 → «1.1.», «1.2.», ... – пункты
     ilvl=2 → «1.1.1.», ...        – подпункты
-
-    isLgl на уровнях 1+ гарантирует, что Roman-счётчик уровня 0
-    отображается как арабское число в форматах «1.1.», «2.3.» и т.д.
-    Без isLgl было бы «I.1.», «II.3.».
 
     Возвращает numId (int).
     """
@@ -536,10 +517,10 @@ def _setup_polozheniye_numbering(doc):
     num_id = len(existing_nums) + 1
     unique_hex = f"{abs_id:08X}"
 
-    # Уровень 0: Roman (заголовки разделов, жирный)
+    # Уровень 0: заголовки разделов, жирный
     lvl0 = (
         f'<w:lvl xmlns:w="{W}" w:ilvl="0">'
-        f'<w:start w:val="1"/><w:numFmt w:val="upperRoman"/>'
+        f'<w:start w:val="1"/><w:numFmt w:val="decimal"/>'
         f'<w:lvlText w:val="%1."/><w:suff w:val="space"/>'
         f'<w:lvlJc w:val="left"/>'
         f'<w:pPr><w:ind w:left="0" w:firstLine="0"/></w:pPr>'
@@ -549,13 +530,12 @@ def _setup_polozheniye_numbering(doc):
         f'</w:lvl>'
     )
 
-    # Уровни 1-8: decimal.decimal... + isLgl (Roman→Arabic для ссылок %1, %2...)
+    # Уровни 1-8: составные номера пунктов и подпунктов
     def _lvl_n(ilvl):
         lvl_text = ".".join(f"%{i + 1}" for i in range(ilvl + 1)) + "."
         return (
             f'<w:lvl xmlns:w="{W}" w:ilvl="{ilvl}">'
             f'<w:start w:val="1"/><w:numFmt w:val="decimal"/>'
-            f'<w:isLgl/>'
             f'<w:lvlText w:val="{lvl_text}"/><w:suff w:val="space"/>'
             f'<w:lvlJc w:val="left"/>'
             f'<w:pPr><w:ind w:left="0" w:firstLine="720"/></w:pPr>'
@@ -673,12 +653,9 @@ def add_polozheniye(doc, sections, size=14):
     """Добавить текст положения в документ.
 
     Использует встроенную нумерацию Word (многоуровневый список):
-    - Заголовки разделов: ilvl=0 → «I.», «II.» (Roman, жирный, по центру)
+    - Заголовки разделов: ilvl=0 → «1.», «2.» (жирный, по центру)
     - Пункты: ilvl=1 → «1.1.», «1.2.» (первая строка 1.25 см, остальное 0)
     - Подпункты: ilvl=2 → «1.1.1.» и т.д.
-
-    isLgl гарантирует отображение Roman-номеров разделов как арабских
-    в форматах «1.1.», «2.3.» (без него было бы «I.1.», «II.3.»).
 
     Параметры
     ----------
@@ -695,7 +672,7 @@ def add_polozheniye(doc, sections, size=14):
         title = section.get("title", "")
         points = section.get("points", [])
 
-        # Заголовок раздела через список (ilvl=0 → «I.», «II.», ...)
+        # Заголовок раздела через список (ilvl=0 → «1.», «2.», ...)
         _para(doc, "", space_after=0)
         _list_para(doc, title, level=0, num_id=pol_num_id, size=size,
                    bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.9.2 - 2026-11-25
+
+### Changed
+
+- `docs-ord`: number sections of attached regulations as 1., 2., 3. in native Word lists, retaining nested numbering such as 1.1. and 2.1.
+- `docs-ord`: use a generic organizational example in the staff selection guide.
+
+### Tests
+
+- Verify native decimal numbering and independent lists in multiple regulation attachments.
+
 ## 0.9.1 - 2026-10-28
 
 ### Fixed
